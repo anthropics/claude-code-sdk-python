@@ -75,13 +75,13 @@ class ResultMessage:
     """Result message with cost and usage information."""
 
     subtype: str
-    cost_usd: float
+    cost_usd: float | None
     duration_ms: int
     duration_api_ms: int
     is_error: bool
     num_turns: int
     session_id: str
-    total_cost_usd: float
+    total_cost_usd: float | None
     usage: dict[str, Any] | None = None
     result: str | None = None
 
