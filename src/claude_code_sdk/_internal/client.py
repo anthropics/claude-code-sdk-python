@@ -84,15 +84,22 @@ class InternalClient:
 
             case "result":
                 # Map total_cost to total_cost_usd for consistency
+                # Remove cost_usd and total_cost_usd cause when use with  Claude account with subscription like Pro or Max it cause error:
+                '''
+                  File "/media/psf/secure-code/venv/lib/python3.12/site-packages/claude_code_sdk/_internal/client.py", line 95, in _parse_message
+                        total_cost_usd=data["total_cost"],
+                   ~~~~^^^^^^^^^^^^^^
+
+                '''
                 return ResultMessage(
                     subtype=data["subtype"],
-                    cost_usd=data["cost_usd"],
+                    #cost_usd=data["cost_usd"],
                     duration_ms=data["duration_ms"],
                     duration_api_ms=data["duration_api_ms"],
                     is_error=data["is_error"],
                     num_turns=data["num_turns"],
                     session_id=data["session_id"],
-                    total_cost_usd=data["total_cost"],
+                    #total_cost_usd=data["total_cost"],
                     usage=data.get("usage"),
                     result=data.get("result"),
                 )
