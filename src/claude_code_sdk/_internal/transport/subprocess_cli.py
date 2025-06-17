@@ -169,6 +169,7 @@ class SubprocessCLITransport(Transport):
             raise CLIConnectionError("Not connected")
 
         stderr_lines = []
+        json_buffer= ""
 
         async def read_stderr() -> None:
             """Read stderr in background."""
@@ -188,12 +189,22 @@ class SubprocessCLITransport(Transport):
                     if not line_str:
                         continue
 
-                    try:
-                        data = json.loads(line_str)
-                        yield data
+                    json_buffer += line_str
                     except json.JSONDecodeError as e:
-                        if line_str.startswith("{") or line_str.startswith("["):
-                            raise SDKJSONDecodeError(line_str, e) from e
+                    if json_buffer.startswith("{") or json_buffer.startswith("["):
+                        open_braces = json_buffer.count("{") - json_buffer.count("}")
+                        open_brackets = json_buffer.count("[") - json_buffer.count("]")
+
+                        if open_braces == 0 and open_brackets == 0:
+                            print(f"WARNING: Malformed JSON detected: {json_buffer[:200]}...")
+                            raise SDKJSONDecodeError(json_buffer, e) from e
+
+                        print(f"Buffering incomplete JSON... (braces: {open_braces}, brackets: {open_brackets})")
+                        json_buffer += "\n"
+                        continue
+                    else:
+                        print(f"Skipping non-JSON line: {json_buffer[:200]}...")
+                        json_buffer = ""
                         continue
 
             except anyio.ClosedResourceError:
