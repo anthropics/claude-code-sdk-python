@@ -198,6 +198,7 @@ class SubprocessCLITransport(Transport):
                         logger.warning("JSON buffer exceeded 1MB limit. Discarding buffered data: %s", json_buffer[:200])
                         json_buffer = ""
                         continue
+
                     try:
                         data = json.loads(json_buffer)
                         yield data
@@ -209,7 +210,7 @@ class SubprocessCLITransport(Transport):
                         open_brackets = json_buffer.count("[") - json_buffer.count("]")
 
                         if open_braces == 0 and open_brackets == 0:
-                                 logger.warning("Malformed JSON detected: %s", json_buffer[:200])
+                            logger.warning("Malformed JSON detected: %s", json_buffer[:200])
                             raise SDKJSONDecodeError(json_buffer, e) from e
 
                         logger.debug(
