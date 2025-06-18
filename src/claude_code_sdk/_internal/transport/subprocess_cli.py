@@ -169,7 +169,7 @@ class SubprocessCLITransport(Transport):
             raise CLIConnectionError("Not connected")
 
         stderr_lines = []
-        json_buffer= ""
+        json_buffer = ""
 
         async def read_stderr() -> None:
             """Read stderr in background."""
