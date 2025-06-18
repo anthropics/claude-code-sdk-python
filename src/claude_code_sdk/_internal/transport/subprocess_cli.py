@@ -190,6 +190,11 @@ class SubprocessCLITransport(Transport):
                         continue
 
                     json_buffer += line_str
+                    try:
+                        data = json.loads(json_buffer)
+                        yield data
+                        json_buffer = ""
+
                     except json.JSONDecodeError as e:
                     if json_buffer.startswith("{") or json_buffer.startswith("["):
                         open_braces = json_buffer.count("{") - json_buffer.count("}")
