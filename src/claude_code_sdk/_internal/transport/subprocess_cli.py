@@ -3,6 +3,7 @@
 import json
 import os
 import shutil
+import logging
 from collections.abc import AsyncIterator
 from pathlib import Path
 from subprocess import PIPE
@@ -17,6 +18,9 @@ from ..._errors import CLIJSONDecodeError as SDKJSONDecodeError
 from ...types import ClaudeCodeOptions
 from . import Transport
 
+logger = logging.getLogger(__name__)
+
+MAX_BUFFER_SIZE = 1 * 1024 * 1024  # 1 MB
 
 class SubprocessCLITransport(Transport):
     """Subprocess transport using Claude Code CLI."""
@@ -190,6 +194,10 @@ class SubprocessCLITransport(Transport):
                         continue
 
                     json_buffer += line_str
+                    if len(json_buffer.encode("utf-8")) > MAX_BUFFER_SIZE:
+                        logger.warning("JSON buffer exceeded 1MB limit. Discarding buffered data: %s", json_buffer[:200])
+                        json_buffer = ""
+                        continue
                     try:
                         data = json.loads(json_buffer)
                         yield data
@@ -201,14 +209,18 @@ class SubprocessCLITransport(Transport):
                         open_brackets = json_buffer.count("[") - json_buffer.count("]")
 
                         if open_braces == 0 and open_brackets == 0:
-                            print(f"WARNING: Malformed JSON detected: {json_buffer[:200]}...")
+                                 logger.warning("Malformed JSON detected: %s", json_buffer[:200])
                             raise SDKJSONDecodeError(json_buffer, e) from e
 
-                        print(f"Buffering incomplete JSON... (braces: {open_braces}, brackets: {open_brackets})")
+                        logger.debug(
+                            "Buffering incomplete JSON... (braces: %d, brackets: %d)",
+                            open_braces,
+                            open_brackets
+                        )
                         json_buffer += "\n"
                         continue
                     else:
-                        print(f"Skipping non-JSON line: {json_buffer[:200]}...")
+                        logger.debug("Skipping non-JSON line: %s", json_buffer[:200])
                         json_buffer = ""
                         continue
 
