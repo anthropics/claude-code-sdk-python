@@ -182,23 +182,54 @@ class SubprocessCLITransport(Transport):
         async with anyio.create_task_group() as tg:
             tg.start_soon(read_stderr)
 
+            buffer = ""
+            is_multiline_json = False
+
             try:
                 async for line in self._stdout_stream:
                     line_str = line.strip()
                     if not line_str:
                         continue
 
-                    try:
-                        data = json.loads(line_str)
+                    if is_multiline_json:
+                        # We're collecting lines for multiline JSON
+                        buffer += line_str
                         try:
-                            yield data
-                        except GeneratorExit:
-                            # Handle generator cleanup gracefully
-                            return
+                            data = json.loads(buffer)
+                            # Success! Yield and reset
+                            try:
+                                yield data
+                            except GeneratorExit:
+                                return
+                            buffer = ""
+                            is_multiline_json = False
+                        except json.JSONDecodeError:
+                            # Still not valid, keep collecting
+                            continue
+                    else:
+                        # Try to parse line as complete JSON first
+                        try:
+                            data = json.loads(line_str)
+                            try:
+                                yield data
+                            except GeneratorExit:
+                                return
+                        except json.JSONDecodeError as e:
+                            # Failed to parse - check if it looks like start of JSON
+                            if line_str.startswith("{") or line_str.startswith("["):
+                                # Start buffering for potential multiline JSON
+                                buffer = line_str
+                                is_multiline_json = True
+                            # If it doesn't look like JSON, just skip the line
+                            continue
+
+                # Handle any remaining buffer after stream ends
+                if buffer and is_multiline_json:
+                    try:
+                        data = json.loads(buffer)
+                        yield data
                     except json.JSONDecodeError as e:
-                        if line_str.startswith("{") or line_str.startswith("["):
-                            raise SDKJSONDecodeError(line_str, e) from e
-                        continue
+                        raise SDKJSONDecodeError(buffer, e) from e
 
             except anyio.ClosedResourceError:
                 pass
