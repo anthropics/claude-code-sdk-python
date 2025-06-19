@@ -27,6 +27,14 @@ class TextBlock:
 
 
 @dataclass
+class ThinkingBlock:
+    """Thinking content block."""
+
+    thinking: str
+    signature: str
+
+
+@dataclass
 class ToolUseBlock:
     """Tool use content block."""
 

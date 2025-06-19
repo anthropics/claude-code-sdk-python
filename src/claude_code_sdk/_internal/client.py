@@ -11,6 +11,7 @@ from ..types import (
     ResultMessage,
     SystemMessage,
     TextBlock,
+    ThinkingBlock,
     ToolResultBlock,
     ToolUseBlock,
     UserMessage,
@@ -55,6 +56,13 @@ class InternalClient:
                     match block["type"]:
                         case "text":
                             content_blocks.append(TextBlock(text=block["text"]))
+                        case "thinking":
+                            content_blocks.append(
+                                ThinkingBlock(
+                                    thinking=block["thinking"],
+                                    signature=block["signature"],
+                                )
+                            )
                         case "tool_use":
                             content_blocks.append(
                                 ToolUseBlock(
