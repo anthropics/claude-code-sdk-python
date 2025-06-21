@@ -128,6 +128,7 @@ class SubprocessCLITransport(Transport):
                 stderr=PIPE,
                 cwd=self._cwd,
                 env={**os.environ, "CLAUDE_CODE_ENTRYPOINT": "sdk-py"},
+                bufsize=10 * 1024 * 1024,  # 10MB buffer to handle large JSON messages
             )
 
             if self._process.stdout:
