@@ -1,4 +1,4 @@
-"""Subprocess transport implementation using Claude Code CLI."""
+"""Subprocess transport implementation using Claude Code CLI with fix for large JSON messages."""
 
 import json
 import os
@@ -31,8 +31,8 @@ class SubprocessCLITransport(Transport):
         self._cli_path = str(cli_path) if cli_path else self._find_cli()
         self._cwd = str(options.cwd) if options.cwd else None
         self._process: Process | None = None
-        self._stdout_stream: Any | None = None  # Raw stdout stream
-        self._stderr_stream: Any | None = None  # Raw stderr stream
+        self._stdout: Any = None  # Store raw stdout
+        self._stderr: Any = None  # Store raw stderr
 
     def _find_cli(self) -> str:
         """Find Claude Code CLI binary."""
@@ -129,12 +129,9 @@ class SubprocessCLITransport(Transport):
                 env={**os.environ, "CLAUDE_CODE_ENTRYPOINT": "sdk-py"},
             )
 
-            if self._process.stdout:
-                # Use raw stream to avoid TextReceiveStream issues with large JSON
-                self._stdout_stream = self._process.stdout
-            if self._process.stderr:
-                # Use raw stream for stderr as well
-                self._stderr_stream = self._process.stderr
+            # Store raw streams instead of wrapping in TextReceiveStream
+            self._stdout = self._process.stdout
+            self._stderr = self._process.stderr
 
         except FileNotFoundError as e:
             raise CLINotFoundError(f"Claude Code not found at: {self._cli_path}") from e
@@ -158,26 +155,26 @@ class SubprocessCLITransport(Transport):
                 pass
 
         self._process = None
-        self._stdout_stream = None
-        self._stderr_stream = None
+        self._stdout = None
+        self._stderr = None
 
     async def send_request(self, messages: list[Any], options: dict[str, Any]) -> None:
         """Not used for CLI transport - args passed via command line."""
 
     async def receive_messages(self) -> AsyncIterator[dict[str, Any]]:
-        """Receive messages from CLI."""
-        if not self._process or not self._stdout_stream:
+        """Receive messages from CLI with proper handling of large JSON lines."""
+        if not self._process or not self._stdout:
             raise CLIConnectionError("Not connected")
 
         stderr_lines = []
 
         async def read_stderr() -> None:
             """Read stderr in background."""
-            if self._stderr_stream:
+            if self._stderr:
                 try:
-                    # Read as bytes and decode
+                    # Read stderr as bytes and decode
                     buffer = b""
-                    async for chunk in self._stderr_stream:
+                    async for chunk in self._stderr:
                         buffer += chunk
                         while b'\n' in buffer:
                             line, buffer = buffer.split(b'\n', 1)
@@ -189,9 +186,9 @@ class SubprocessCLITransport(Transport):
             tg.start_soon(read_stderr)
 
             try:
-                # Read stdout as bytes to properly handle large JSON lines
+                # Read stdout as bytes to avoid TextReceiveStream issues
                 buffer = b""
-                async for chunk in self._stdout_stream:
+                async for chunk in self._stdout:
                     buffer += chunk
                     
                     # Process complete lines
