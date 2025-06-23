@@ -106,3 +106,8 @@ class ClaudeCodeOptions:
     model: str | None = None
     permission_prompt_tool_name: str | None = None
     cwd: str | Path | None = None
+    
+    # New options for better error handling and debugging
+    timeout: int | None = None  # Timeout in seconds for the CLI process
+    debug: bool = False  # Enable debug logging
+    cli_path: str | Path | None = None  # Custom path to claude-code CLI

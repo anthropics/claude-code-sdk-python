@@ -29,7 +29,12 @@ class InternalClient:
     ) -> AsyncIterator[Message]:
         """Process a query through transport."""
 
-        transport = SubprocessCLITransport(prompt=prompt, options=options)
+        # Pass cli_path from options if provided
+        transport = SubprocessCLITransport(
+            prompt=prompt, 
+            options=options,
+            cli_path=options.cli_path
+        )
 
         try:
             await transport.connect()
