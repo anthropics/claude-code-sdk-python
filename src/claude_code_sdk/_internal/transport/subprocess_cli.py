@@ -41,15 +41,32 @@ class SubprocessCLITransport(Transport):
             return cli
 
         locations = [
+            # npm/node locations
             Path.home() / ".npm-global/bin/claude",
             Path("/usr/local/bin/claude"),
             Path.home() / ".local/bin/claude",
             Path.home() / "node_modules/.bin/claude",
             Path.home() / ".yarn/bin/claude",
+            # Common global npm locations
+            Path("/opt/homebrew/bin/claude"),  # macOS ARM
+            Path("/usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/claude"),
+            Path.home() / ".nvm/versions/node/*/bin/claude",  # nvm installations
+            # Local project installations
+            Path("node_modules/.bin/claude"),
+            Path("../node_modules/.bin/claude"),
+            # Official Claude CLI locations (for future compatibility)
+            Path.home() / ".claude/local/claude",
+            Path.home() / ".claude/bin/claude",
         ]
 
         for path in locations:
-            if path.exists() and path.is_file():
+            # Handle glob patterns (like nvm paths)
+            if "*" in str(path):
+                import glob
+                for expanded_path in glob.glob(str(path)):
+                    if Path(expanded_path).exists() and Path(expanded_path).is_file():
+                        return expanded_path
+            elif path.exists() and path.is_file():
                 return str(path)
 
         node_installed = shutil.which("node") is not None
@@ -111,7 +128,7 @@ class SubprocessCLITransport(Transport):
                 ["--mcp-config", json.dumps({"mcpServers": self._options.mcp_servers})]
             )
 
-        cmd.extend(["--print", self._prompt])
+        # Don't add prompt to command - it will be sent via stdin
         return cmd
 
     async def connect(self) -> None:
@@ -123,7 +140,7 @@ class SubprocessCLITransport(Transport):
         try:
             self._process = await anyio.open_process(
                 cmd,
-                stdin=None,
+                stdin=PIPE,  # Need stdin to send prompt
                 stdout=PIPE,
                 stderr=PIPE,
                 cwd=self._cwd,
@@ -134,6 +151,11 @@ class SubprocessCLITransport(Transport):
                 self._stdout_stream = TextReceiveStream(self._process.stdout)
             if self._process.stderr:
                 self._stderr_stream = TextReceiveStream(self._process.stderr)
+            
+            # Send the prompt via stdin
+            if self._process.stdin:
+                await self._process.stdin.send(self._prompt.encode() + b"\n")
+                await self._process.stdin.aclose()  # Close stdin to signal we're done
 
         except FileNotFoundError as e:
             raise CLINotFoundError(f"Claude Code not found at: {self._cli_path}") from e
