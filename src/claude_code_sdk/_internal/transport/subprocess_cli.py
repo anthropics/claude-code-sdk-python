@@ -44,6 +44,7 @@ class SubprocessCLITransport(Transport):
             Path.home() / ".npm-global/bin/claude",
             Path("/usr/local/bin/claude"),
             Path.home() / ".local/bin/claude",
+            Path.home() / ".claude/local/claude",
             Path.home() / "node_modules/.bin/claude",
             Path.home() / ".yarn/bin/claude",
         ]
