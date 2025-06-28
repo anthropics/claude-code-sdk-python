@@ -1,0 +1,59 @@
+name: "Claude Issue Triage Action"
+description: "Automatically triage GitHub issues using Claude Code"
+
+inputs:
+  timeout_minutes:
+    description: "Timeout in minutes for execution"
+    required: false
+    default: "5"
+  anthropic_api_key:
+    description: "Anthropic API key"
+    required: true
+  github_token:
+    description: "GitHub token with repo and issues permissions"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Claude Code
+      shell: bash
+      run: npm install -g @anthropic-ai/claude-code
+
+    - name: Run Claude Issue Triage
+      shell: bash
+      env:
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic_api_key }}
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+      run: |
+        claude --mcp-config '{
+          "mcpServers": {
+            "github": {
+              "command": "npx",
+              "args": ["-y", "@modelcontextprotocol/server-github"],
+              "env": {
+                "GITHUB_PERSONAL_ACCESS_TOKEN": "${{ inputs.github_token }}"
+              }
+            }
+          }
+        }' \
+        --max-turns 10 \
+        --permission-mode acceptEdits \
+        --print "You're an issue triage assistant for GitHub issue #${{ github.event.issue.number }} in ${{ github.repository }}.
+
+        Your task is to analyze the issue and apply appropriate labels.
+
+        IMPORTANT: 
+        - Don't post any comments to the issue
+        - Only apply labels using the update_issue tool
+        - First fetch available labels with: gh label list
+        - Then get issue details using the MCP GitHub tools
+        - Search for similar issues to help with categorization
+        - Apply 1-3 relevant labels based on the issue content
+
+        Start by listing available labels, then analyze issue #${{ github.event.issue.number }}."
