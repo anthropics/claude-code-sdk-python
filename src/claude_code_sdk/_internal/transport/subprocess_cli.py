@@ -183,10 +183,21 @@ class SubprocessCLITransport(Transport):
             tg.start_soon(read_stderr)
 
             try:
+                # store incomplete buffered json output
+                incomplete_json_line_str = None
                 async for line in self._stdout_stream:
                     line_str = line.strip()
                     if not line_str:
                         continue
+
+                    if incomplete_json_line_str:
+                        assert not line_str.startswith("{"), (
+                            "New line must complete incomplete JSON"
+                        )
+                        line_str = incomplete_json_line_str + line_str
+
+                    # Store parsed JSON output for the line
+                    parsed_json_outputs = []
 
                     # Split on newlines in case multiple JSON objects are buffered together
                     json_lines = line_str.split("\n")
@@ -198,15 +209,30 @@ class SubprocessCLITransport(Transport):
 
                         try:
                             data = json.loads(json_line)
-                            try:
-                                yield data
-                            except GeneratorExit:
-                                # Handle generator cleanup gracefully
-                                return
+
+                            # line has been parsed, reseting incomplete_json_line_str
+                            incomplete_json_line_str = None
+
+                            # Yield later to avoid duplicates on incomplete line_str
+                            parsed_json_outputs.append(data)
                         except json.JSONDecodeError as e:
                             if json_line.startswith("{") or json_line.startswith("["):
-                                raise SDKJSONDecodeError(json_line, e) from e
+                                incomplete_json_line_str = line_str
+
+                                # raise error only if output is complete JSON but unable to parse
+                                if json_line.endswith("}") or json_line.startswith("]"):
+                                    raise SDKJSONDecodeError(json_line, e) from e
                             continue
+
+                    if incomplete_json_line_str:
+                        continue
+
+                    for json_output_data in parsed_json_outputs:
+                        try:
+                            yield json_output_data
+                        except GeneratorExit:
+                            # Handle generator cleanup gracefully
+                            return
 
             except anyio.ClosedResourceError:
                 pass
