@@ -17,6 +17,7 @@ class MockTextReceiveStream:
     def __init__(self, lines: list[str]) -> None:
         self.lines = lines
         self.index = 0
+        self.encoding = "utf-8"
 
     def __aiter__(self) -> AsyncIterator[str]:
         return self
@@ -140,7 +141,7 @@ class TestSubprocessBuffering:
 
         anyio.run(_test)
         
-    def test_object_over_buffer_limit(self) -> None:
+    def test_objects_over_buffer_limit(self) -> None:
         """Test parsing with a json object larger than the buffer limit."""
 
         async def _test() -> None:

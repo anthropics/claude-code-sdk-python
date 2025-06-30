@@ -18,6 +18,8 @@ from ...types import ClaudeCodeOptions
 from . import Transport
 
 
+_MAX_BUFFER_SIZE = 1 * 1024 * 1024 # 1MB
+
 class SubprocessCLITransport(Transport):
     """Subprocess transport using Claude Code CLI."""
 
@@ -197,9 +199,13 @@ class SubprocessCLITransport(Transport):
                         json_line = json_line.strip()
                         if not json_line:
                             continue
-
+                        
+                        json_buffer += json_line
+                        if(len(json_buffer.encode(self._stdout_stream.encoding)) > _MAX_BUFFER_SIZE):
+                            raise OverflowError(f"JSON message buffer exceeded max size: "
+                                                f"{_MAX_BUFFER_SIZE/(1024*1024)} MB")
+                        
                         try:
-                            json_buffer += json_line
                             data = json.loads(json_buffer)
                             json_buffer = ""
                             try:
