@@ -139,3 +139,40 @@ class TestSubprocessBuffering:
             assert messages[1]["id"] == "res1"
 
         anyio.run(_test)
+        
+    def test_object_over_buffer_limit(self) -> None:
+        """Test parsing with a json object larger than the buffer limit."""
+
+        async def _test() -> None:
+            max_buffer_size = 2**16 # 64KB, default buffer limit for asyncio streams
+            
+            # Simulate json object larger than max buffer size
+            json_obj1 = {"type": "message", "message": "a"* (2 ** 16), "id": "msg1"}
+            json_obj2 = {"type": "result", "id": "res1"}
+
+            buffered_line = json.dumps(json_obj1) + "\n" + json.dumps(json_obj2)
+            
+            # Lines larger than 64KB are split
+            buffered_lines = [buffered_line[i:i+max_buffer_size] 
+                              for i in range(0, len(buffered_line), max_buffer_size)]
+            
+            transport = SubprocessCLITransport(
+                prompt="test", options=ClaudeCodeOptions(), cli_path="/usr/bin/claude"
+            )
+
+            mock_process = MagicMock()
+            mock_process.returncode = None
+            mock_process.wait = AsyncMock(return_value=None)
+            transport._process = mock_process
+            transport._stdout_stream = MockTextReceiveStream(buffered_lines)
+            transport._stderr_stream = MockTextReceiveStream([])
+
+            messages: list[Any] = []
+            async for msg in transport.receive_messages():
+                messages.append(msg)
+
+            assert len(messages) == 2
+            assert messages[0]["id"] == "msg1"
+            assert messages[1]["id"] == "res1"
+
+        anyio.run(_test)
