@@ -182,6 +182,8 @@ class SubprocessCLITransport(Transport):
         async with anyio.create_task_group() as tg:
             tg.start_soon(read_stderr)
 
+            json_buffer = ""
+            
             try:
                 async for line in self._stdout_stream:
                     line_str = line.strip()
@@ -197,14 +199,17 @@ class SubprocessCLITransport(Transport):
                             continue
 
                         try:
-                            data = json.loads(json_line)
+                            json_buffer += json_line
+                            data = json.loads(json_buffer)
+                            json_buffer = ""
                             try:
                                 yield data
                             except GeneratorExit:
                                 # Handle generator cleanup gracefully
                                 return
                         except json.JSONDecodeError as e:
-                            if json_line.startswith("{") or json_line.startswith("["):
+                            if (json_buffer.startswith("{") and json_buffer.endswith("}")) or (
+                                json_buffer.startswith("[") and json_buffer.endswith("]")):
                                 raise SDKJSONDecodeError(json_line, e) from e
                             continue
 
