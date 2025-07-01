@@ -95,9 +95,10 @@ class SubprocessCLITransport(Transport):
             cmd.extend(["--model", self._options.model])
 
         if self._options.permission_prompt_tool_name:
-            cmd.extend(
-                ["--permission-prompt-tool", self._options.permission_prompt_tool_name]
-            )
+            cmd.extend([
+                "--permission-prompt-tool",
+                self._options.permission_prompt_tool_name,
+            ])
 
         if self._options.permission_mode:
             cmd.extend(["--permission-mode", self._options.permission_mode])
@@ -109,9 +110,10 @@ class SubprocessCLITransport(Transport):
             cmd.extend(["--resume", self._options.resume])
 
         if self._options.mcp_servers:
-            cmd.extend(
-                ["--mcp-config", json.dumps({"mcpServers": self._options.mcp_servers})]
-            )
+            cmd.extend([
+                "--mcp-config",
+                json.dumps({"mcpServers": self._options.mcp_servers}),
+            ])
 
         cmd.extend(["--print", self._prompt])
         return cmd
@@ -203,7 +205,6 @@ class SubprocessCLITransport(Transport):
                         json_buffer += json_line
 
                         if len(json_buffer) > _MAX_BUFFER_SIZE:
-                            json_buffer = ""
                             raise SDKJSONDecodeError(
                                 f"JSON message exceeded maximum buffer size of {_MAX_BUFFER_SIZE} bytes",
                                 ValueError(
