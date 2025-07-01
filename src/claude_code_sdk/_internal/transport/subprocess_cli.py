@@ -95,10 +95,9 @@ class SubprocessCLITransport(Transport):
             cmd.extend(["--model", self._options.model])
 
         if self._options.permission_prompt_tool_name:
-            cmd.extend([
-                "--permission-prompt-tool",
-                self._options.permission_prompt_tool_name,
-            ])
+            cmd.extend(
+                ["--permission-prompt-tool", self._options.permission_prompt_tool_name]
+            )
 
         if self._options.permission_mode:
             cmd.extend(["--permission-mode", self._options.permission_mode])
@@ -110,10 +109,9 @@ class SubprocessCLITransport(Transport):
             cmd.extend(["--resume", self._options.resume])
 
         if self._options.mcp_servers:
-            cmd.extend([
-                "--mcp-config",
-                json.dumps({"mcpServers": self._options.mcp_servers}),
-            ])
+            cmd.extend(
+                ["--mcp-config", json.dumps({"mcpServers": self._options.mcp_servers})]
+            )
 
         cmd.extend(["--print", self._prompt])
         return cmd
