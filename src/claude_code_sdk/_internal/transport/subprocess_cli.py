@@ -129,7 +129,7 @@ class SubprocessCLITransport(Transport):
                 stdout=PIPE,
                 stderr=PIPE,
                 cwd=self._cwd,
-                env={**os.environ, "CLAUDE_CODE_ENTRYPOINT": "sdk-py"},
+                env={**os.environ, **self._options.envvars, "CLAUDE_CODE_ENTRYPOINT": "sdk-py"},
             )
 
             if self._process.stdout:
