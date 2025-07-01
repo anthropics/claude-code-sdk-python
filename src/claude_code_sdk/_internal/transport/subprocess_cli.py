@@ -203,7 +203,6 @@ class SubprocessCLITransport(Transport):
                         json_buffer += json_line
 
                         if len(json_buffer) > _MAX_BUFFER_SIZE:
-                            json_buffer = ""
                             raise SDKJSONDecodeError(
                                 f"JSON message exceeded maximum buffer size of {_MAX_BUFFER_SIZE} bytes",
                                 ValueError(
