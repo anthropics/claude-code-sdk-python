@@ -33,6 +33,7 @@ class SubprocessCLITransport(Transport):
         self._options = options
         self._cli_path = str(cli_path) if cli_path else self._find_cli()
         self._cwd = str(options.cwd) if options.cwd else None
+        self._envvars = options.envvars if options.envvars else {}
         self._process: Process | None = None
         self._stdout_stream: TextReceiveStream | None = None
         self._stderr_stream: TextReceiveStream | None = None
@@ -129,7 +130,7 @@ class SubprocessCLITransport(Transport):
                 stdout=PIPE,
                 stderr=PIPE,
                 cwd=self._cwd,
-                env={**os.environ, "CLAUDE_CODE_ENTRYPOINT": "sdk-py"},
+                env={**os.environ, **self._envvars, "CLAUDE_CODE_ENTRYPOINT": "sdk-py"},
             )
 
             if self._process.stdout:
