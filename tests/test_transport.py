@@ -132,3 +132,24 @@ class TestSubprocessCLITransport:
         # So we just verify the transport can be created and basic structure is correct
         assert transport._prompt == "test"
         assert transport._cli_path == "/usr/bin/claude"
+
+    def test_build_command_with_strict_mcp_config(self):
+        """Test building CLI command with strict MCP config."""
+        transport = SubprocessCLITransport(
+            prompt="test",
+            options=ClaudeCodeOptions(strict_mcp_config=True),
+            cli_path="/usr/bin/claude",
+        )
+
+        cmd = transport._build_command()
+        assert "--strict-mcp-config" in cmd
+
+        # Test that flag is not present when False
+        transport_no_strict = SubprocessCLITransport(
+            prompt="test",
+            options=ClaudeCodeOptions(strict_mcp_config=False),
+            cli_path="/usr/bin/claude",
+        )
+
+        cmd_no_strict = transport_no_strict._build_command()
+        assert "--strict-mcp-config" not in cmd_no_strict

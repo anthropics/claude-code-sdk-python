@@ -116,6 +116,9 @@ class SubprocessCLITransport(Transport):
                 ["--mcp-config", json.dumps({"mcpServers": self._options.mcp_servers})]
             )
 
+        if self._options.strict_mcp_config:
+            cmd.append("--strict-mcp-config")
+
         cmd.extend(["--print", self._prompt])
         return cmd
 

@@ -76,6 +76,32 @@ options = ClaudeCodeOptions(
 )
 ```
 
+### MCP Servers
+
+```python
+# Configure MCP servers programmatically
+options = ClaudeCodeOptions(
+    mcp_servers={
+        "memory-server": {
+            "command": "npx",
+            "args": ["@modelcontextprotocol/server-memory"]
+        }
+    }
+)
+
+# Use strict MCP config to ignore all file-based configurations
+# This ensures ONLY your programmatically specified servers are used
+options = ClaudeCodeOptions(
+    mcp_servers={
+        "my-server": {
+            "command": "node",
+            "args": ["my-mcp-server.js"]
+        }
+    },
+    strict_mcp_config=True  # Ignore global/project MCP settings
+)
+```
+
 ## API Reference
 
 ### `query(prompt, options=None)`

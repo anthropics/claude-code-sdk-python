@@ -69,6 +69,7 @@ class TestOptions:
         assert options.permission_mode is None
         assert options.continue_conversation is False
         assert options.disallowed_tools == []
+        assert options.strict_mcp_config is False
 
     def test_claude_code_options_with_tools(self):
         """Test Options with built-in tools."""
