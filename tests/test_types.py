@@ -5,7 +5,13 @@ from claude_code_sdk import (
     ClaudeCodeOptions,
     ResultMessage,
 )
-from claude_code_sdk.types import TextBlock, ToolResultBlock, ToolUseBlock, UserMessage
+from claude_code_sdk.types import (
+    TextBlock,
+    ThinkingBlock,
+    ToolResultBlock,
+    ToolUseBlock,
+    UserMessage,
+)
 
 
 class TestMessageTypes:
@@ -22,6 +28,14 @@ class TestMessageTypes:
         msg = AssistantMessage(content=[text_block])
         assert len(msg.content) == 1
         assert msg.content[0].text == "Hello, human!"
+
+    def test_assistant_message_with_thinking(self):
+        """Test creating an AssistantMessage with thinking content."""
+        thinking_block = ThinkingBlock(thinking="I'm thinking...", signature="sig-123")
+        msg = AssistantMessage(content=[thinking_block])
+        assert len(msg.content) == 1
+        assert msg.content[0].thinking == "I'm thinking..."
+        assert msg.content[0].signature == "sig-123"
 
     def test_tool_use_block(self):
         """Test creating a ToolUseBlock."""
