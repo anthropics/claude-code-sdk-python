@@ -1,5 +1,8 @@
 """Tests for Claude SDK type definitions."""
 
+import sys
+import importlib
+import pytest
 from claude_code_sdk import (
     AssistantMessage,
     ClaudeCodeOptions,
@@ -55,6 +58,14 @@ class TestMessageTypes:
         assert msg.subtype == "success"
         assert msg.total_cost_usd == 0.01
         assert msg.session_id == "session-123"
+
+    def test_import_types_module(self):
+        """
+        Smoke test to ensure claude_code_sdk.types imports without errors
+        and defines NotRequired.
+        """
+        module = importlib.reload(importlib.import_module("claude_code_sdk.types"))
+        assert hasattr(module, "NotRequired"), "claude_code_sdk.types should define NotRequired"
 
 
 class TestOptions:
