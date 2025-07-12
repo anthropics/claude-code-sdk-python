@@ -48,6 +48,14 @@ class TextBlock:
 
 
 @dataclass
+class ThinkingBlock:
+    """Thinking content block."""
+
+    thinking: str
+    signature: str
+
+
+@dataclass
 class ToolUseBlock:
     """Tool use content block."""
 
@@ -65,7 +73,7 @@ class ToolResultBlock:
     is_error: bool | None = None
 
 
-ContentBlock = TextBlock | ToolUseBlock | ToolResultBlock
+ContentBlock = TextBlock | ThinkingBlock | ToolUseBlock | ToolResultBlock
 
 
 # Message types
