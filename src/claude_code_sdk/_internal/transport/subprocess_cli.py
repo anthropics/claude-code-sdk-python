@@ -1,6 +1,7 @@
 """Subprocess transport implementation using Claude Code CLI."""
 
 import json
+import logging
 import os
 import shutil
 from collections.abc import AsyncIterator
@@ -16,6 +17,10 @@ from ..._errors import CLIConnectionError, CLINotFoundError, ProcessError
 from ..._errors import CLIJSONDecodeError as SDKJSONDecodeError
 from ...types import ClaudeCodeOptions
 from . import Transport
+
+logger = logging.getLogger(__name__)
+
+_MAX_BUFFER_SIZE = 1024 * 1024  # 1MB buffer limit
 
 
 class SubprocessCLITransport(Transport):
@@ -136,6 +141,11 @@ class SubprocessCLITransport(Transport):
                 self._stderr_stream = TextReceiveStream(self._process.stderr)
 
         except FileNotFoundError as e:
+            # Check if the error comes from the working directory or the CLI
+            if self._cwd and not Path(self._cwd).exists():
+                raise CLIConnectionError(
+                    f"Working directory does not exist: {self._cwd}"
+                ) from e
             raise CLINotFoundError(f"Claude Code not found at: {self._cli_path}") from e
         except Exception as e:
             raise CLIConnectionError(f"Failed to start Claude Code: {e}") from e
@@ -168,50 +178,104 @@ class SubprocessCLITransport(Transport):
         if not self._process or not self._stdout_stream:
             raise CLIConnectionError("Not connected")
 
-        stderr_lines = []
+        # Safety constants
+        max_stderr_size = 10 * 1024 * 1024  # 10MB
+        stderr_timeout = 30.0  # 30 seconds
 
-        async def read_stderr() -> None:
-            """Read stderr in background."""
-            if self._stderr_stream:
-                try:
-                    async for line in self._stderr_stream:
-                        stderr_lines.append(line.strip())
-                except anyio.ClosedResourceError:
-                    pass
+        json_buffer = ""
 
-        async with anyio.create_task_group() as tg:
-            tg.start_soon(read_stderr)
+        # Process stdout messages first
+        try:
+            async for line in self._stdout_stream:
+                line_str = line.strip()
+                if not line_str:
+                    continue
 
-            try:
-                async for line in self._stdout_stream:
-                    line_str = line.strip()
-                    if not line_str:
+                json_lines = line_str.split("\n")
+
+                for json_line in json_lines:
+                    json_line = json_line.strip()
+                    if not json_line:
                         continue
 
+                    # Keep accumulating partial JSON until we can parse it
+                    json_buffer += json_line
+
+                    if len(json_buffer) > _MAX_BUFFER_SIZE:
+                        json_buffer = ""
+                        raise SDKJSONDecodeError(
+                            f"JSON message exceeded maximum buffer size of {_MAX_BUFFER_SIZE} bytes",
+                            ValueError(
+                                f"Buffer size {len(json_buffer)} exceeds limit {_MAX_BUFFER_SIZE}"
+                            ),
+                        )
+
                     try:
-                        data = json.loads(line_str)
+                        data = json.loads(json_buffer)
+                        json_buffer = ""
                         try:
                             yield data
                         except GeneratorExit:
-                            # Handle generator cleanup gracefully
                             return
-                    except json.JSONDecodeError as e:
-                        if line_str.startswith("{") or line_str.startswith("["):
-                            raise SDKJSONDecodeError(line_str, e) from e
+                    except json.JSONDecodeError:
                         continue
 
+        except anyio.ClosedResourceError:
+            pass
+        except GeneratorExit:
+            # Client disconnected - still need to clean up
+            pass
+
+        # Process stderr with safety limits
+        stderr_lines = []
+        stderr_size = 0
+
+        if self._stderr_stream:
+            try:
+                # Use timeout to prevent hanging
+                with anyio.fail_after(stderr_timeout):
+                    async for line in self._stderr_stream:
+                        line_text = line.strip()
+                        line_size = len(line_text)
+
+                        # Enforce memory limit
+                        if stderr_size + line_size > max_stderr_size:
+                            stderr_lines.append(
+                                f"[stderr truncated after {stderr_size} bytes]"
+                            )
+                            # Drain rest of stream without storing
+                            async for _ in self._stderr_stream:
+                                pass
+                            break
+
+                        stderr_lines.append(line_text)
+                        stderr_size += line_size
+
+            except TimeoutError:
+                stderr_lines.append(
+                    f"[stderr collection timed out after {stderr_timeout}s]"
+                )
             except anyio.ClosedResourceError:
                 pass
 
-        await self._process.wait()
-        if self._process.returncode is not None and self._process.returncode != 0:
-            stderr_output = "\n".join(stderr_lines)
-            if stderr_output and "error" in stderr_output.lower():
-                raise ProcessError(
-                    "CLI process failed",
-                    exit_code=self._process.returncode,
-                    stderr=stderr_output,
-                )
+        # Check process completion and handle errors
+        try:
+            returncode = await self._process.wait()
+        except Exception:
+            returncode = -1
+
+        stderr_output = "\n".join(stderr_lines) if stderr_lines else ""
+
+        # Use exit code for error detection, not string matching
+        if returncode is not None and returncode != 0:
+            raise ProcessError(
+                f"Command failed with exit code {returncode}",
+                exit_code=returncode,
+                stderr=stderr_output,
+            )
+        elif stderr_output:
+            # Log stderr for debugging but don't fail on non-zero exit
+            logger.debug(f"Process stderr: {stderr_output}")
 
     def is_connected(self) -> bool:
         """Check if subprocess is running."""
