@@ -73,7 +73,7 @@ class ToolResultBlock:
     is_error: bool | None = None
 
 
-ContentBlock = TextBlock | ToolUseBlock | ToolResultBlock
+ContentBlock = TextBlock | ThinkingBlock | ToolUseBlock | ToolResultBlock
 
 
 # Message types
