@@ -11,6 +11,7 @@ from ._errors import (
     ProcessError,
 )
 from ._internal.client import InternalClient
+from ._internal.transport import Transport
 from .types import (
     AssistantMessage,
     ClaudeCodeOptions,
@@ -31,6 +32,8 @@ __version__ = "0.0.14"
 __all__ = [
     # Main function
     "query",
+    # Transport
+    "Transport",
     # Types
     "PermissionMode",
     "McpServerConfig",
@@ -54,7 +57,7 @@ __all__ = [
 
 
 async def query(
-    *, prompt: str, options: ClaudeCodeOptions | None = None
+    *, prompt: str, options: ClaudeCodeOptions | None = None, transport: Transport | None = None
 ) -> AsyncIterator[Message]:
     """
     Query Claude Code.
@@ -69,6 +72,8 @@ async def query(
                  - 'acceptEdits': Auto-accept file edits
                  - 'bypassPermissions': Allow all tools (use with caution)
                  Set options.cwd for working directory.
+        transport: Optional transport implementation. If provided, this will be used
+                  instead of the default transport selection based on options.
 
     Yields:
         Messages from the conversation
@@ -89,6 +94,16 @@ async def query(
             )
         ):
             print(message)
+
+        # With custom transport
+        async for message in query(
+            prompt="Hello",
+            transport=MyCustomTransport()
+        ):
+            print(message)
+
+        async for message in query(prompt="Hello", transport=transport):
+            print(message)
         ```
     """
     if options is None:
@@ -98,5 +113,5 @@ async def query(
 
     client = InternalClient()
 
-    async for message in client.process_query(prompt=prompt, options=options):
+    async for message in client.process_query(prompt=prompt, options=options, transport=transport):
         yield message

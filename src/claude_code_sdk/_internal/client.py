@@ -15,6 +15,7 @@ from ..types import (
     ToolUseBlock,
     UserMessage,
 )
+from .transport import Transport
 from .transport.subprocess_cli import SubprocessCLITransport
 
 
@@ -25,22 +26,26 @@ class InternalClient:
         """Initialize the internal client."""
 
     async def process_query(
-        self, prompt: str, options: ClaudeCodeOptions
+        self, prompt: str, options: ClaudeCodeOptions, transport: Transport | None = None
     ) -> AsyncIterator[Message]:
         """Process a query through transport."""
 
-        transport = SubprocessCLITransport(prompt=prompt, options=options)
+        # Use provided transport or choose one based on configuration
+        if transport is not None:
+            chosen_transport = transport
+        else:
+            chosen_transport = SubprocessCLITransport(prompt=prompt, options=options)
 
         try:
-            await transport.connect()
+            await chosen_transport.connect()
 
-            async for data in transport.receive_messages():
+            async for data in chosen_transport.receive_messages():
                 message = self._parse_message(data)
                 if message:
                     yield message
 
         finally:
-            await transport.disconnect()
+            await chosen_transport.disconnect()
 
     def _parse_message(self, data: dict[str, Any]) -> Message | None:
         """Parse message from CLI output, trusting the structure."""
