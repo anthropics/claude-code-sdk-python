@@ -40,9 +40,7 @@ class InternalClient:
             chosen_transport = transport
         else:
             chosen_transport = SubprocessCLITransport(
-            prompt=prompt,
-            options=options,
-            close_stdin_after_prompt=True
+            prompt=prompt, options=options, close_stdin_after_prompt=True
         )
 
         try:
