@@ -39,7 +39,11 @@ class InternalClient:
         if transport is not None:
             chosen_transport = transport
         else:
-            chosen_transport = SubprocessCLITransport(prompt, options)
+            chosen_transport = SubprocessCLITransport(
+            prompt=prompt,
+            options=options,
+            close_stdin_after_prompt=True
+        )
 
         try:
             # Configure the transport with prompt and options
