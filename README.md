@@ -1,3 +1,34 @@
+
+<div align="right">
+  <details>
+    <summary >🌐 Language</summary>
+    <div>
+      <div align="center">
+        <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=en">English</a>
+        | <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=zh-CN">简体中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=zh-TW">繁體中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=ja">日本語</a>
+        | <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=ko">한국어</a>
+        | <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=hi">हिन्दी</a>
+        | <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=th">ไทย</a>
+        | <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=fr">Français</a>
+        | <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=de">Deutsch</a>
+        | <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=es">Español</a>
+        | <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=it">Italiano</a>
+        | <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=ru">Русский</a>
+        | <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=pt">Português</a>
+        | <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=nl">Nederlands</a>
+        | <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=pl">Polski</a>
+        | <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=ar">العربية</a>
+        | <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=fa">فارسی</a>
+        | <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=tr">Türkçe</a>
+        | <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=vi">Tiếng Việt</a>
+        | <a href="https://openaitx.github.io/view.html?user=anthropics&project=claude-code-sdk-python&lang=id">Bahasa Indonesia</a>
+      </div>
+    </div>
+  </details>
+</div>
+
 # Claude Code SDK for Python
 
 Python SDK for Claude Code. See the [Claude Code SDK documentation](https://docs.anthropic.com/en/docs/claude-code/sdk) for more information.
