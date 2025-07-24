@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict, Dict
 
 from typing_extensions import NotRequired  # For Python < 3.11 compatibility
 
@@ -127,3 +127,4 @@ class ClaudeCodeOptions:
     model: str | None = None
     permission_prompt_tool_name: str | None = None
     cwd: str | Path | None = None
+    envvars: Dict[str, str] | None = None
