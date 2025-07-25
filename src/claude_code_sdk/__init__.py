@@ -6,9 +6,11 @@ from ._errors import (
     CLIJSONDecodeError,
     CLINotFoundError,
     ProcessError,
+    SessionError,
 )
 from .client import ClaudeSDKClient
 from .query import query
+from .stateful_client import StatefulCLIClient
 from .types import (
     AssistantMessage,
     ClaudeCodeOptions,
@@ -30,6 +32,7 @@ __all__ = [
     # Main exports
     "query",
     "ClaudeSDKClient",
+    "StatefulCLIClient",
     # Types
     "PermissionMode",
     "McpServerConfig",
@@ -49,4 +52,5 @@ __all__ = [
     "CLINotFoundError",
     "ProcessError",
     "CLIJSONDecodeError",
+    "SessionError",
 ]
