@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from typing import Any
 
+from claude_code_sdk.types import ClaudeCodeOptions
+
 
 class Transport(ABC):
     """Abstract transport for Claude communication."""
@@ -36,4 +38,5 @@ class Transport(ABC):
         pass
 
 
+# Import implementations
 __all__ = ["Transport"]
