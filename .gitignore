@@ -48,4 +48,6 @@ htmlcov/
 dmypy.json
 .pyre/
 
-*CLAUDE*.md
+#CLAUDE related
+CLAUDE.md
+.claude/

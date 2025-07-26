@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ConversationMessage:
     """Individual message in conversation history."""
+
     role: str
     content: str
     timestamp: datetime
@@ -28,7 +29,7 @@ class ConversationMessage:
             "content": self.content,
             "timestamp": self.timestamp.isoformat(),
             "message_type": self.message_type,
-            "usage": self.usage
+            "usage": self.usage,
         }
 
     @classmethod
@@ -39,13 +40,14 @@ class ConversationMessage:
             content=data["content"],
             timestamp=datetime.fromisoformat(data["timestamp"]),
             message_type=data.get("message_type", "text"),
-            usage=data.get("usage")
+            usage=data.get("usage"),
         )
 
 
 @dataclass
 class SessionData:
     """Complete session data including history and metadata."""
+
     session_id: str
     start_time: datetime
     last_activity: datetime
@@ -70,10 +72,12 @@ class SessionData:
             "session_id": self.session_id,
             "start_time": self.start_time.isoformat(),
             "last_activity": self.last_activity.isoformat(),
-            "conversation_history": [msg.to_dict() for msg in self.conversation_history],
+            "conversation_history": [
+                msg.to_dict() for msg in self.conversation_history
+            ],
             "options": self.options.__dict__ if self.options else None,
             "metadata": self.metadata,
-            "working_directory": self.working_directory
+            "working_directory": self.working_directory,
         }
 
     @classmethod
@@ -88,18 +92,19 @@ class SessionData:
             start_time=datetime.fromisoformat(data["start_time"]),
             last_activity=datetime.fromisoformat(data["last_activity"]),
             conversation_history=[
-                ConversationMessage.from_dict(msg) 
+                ConversationMessage.from_dict(msg)
                 for msg in data.get("conversation_history", [])
             ],
             options=options,
             metadata=data.get("metadata", {}),
-            working_directory=data.get("working_directory")
+            working_directory=data.get("working_directory"),
         )
 
 
 @dataclass
 class SessionSummary:
     """Summary information for session listing."""
+
     session_id: str
     start_time: datetime
     last_activity: datetime
@@ -113,13 +118,13 @@ class SessionPersistence:
     def __init__(self, storage_path: Path | str | None = None):
         """
         Initialize session persistence.
-        
+
         Args:
             storage_path: Directory for session files (default: ~/.claude_sdk/sessions/)
         """
         if storage_path is None:
             storage_path = Path.home() / ".claude_sdk" / "sessions"
-        
+
         self._storage_path = Path(storage_path)
         self._storage_path.mkdir(parents=True, exist_ok=True)
 
@@ -130,14 +135,14 @@ class SessionPersistence:
     async def save_session(self, session_data: SessionData) -> None:
         """
         Save session data to JSON file.
-        
+
         Args:
             session_data: Session data to save
         """
         file_path = self._get_session_file_path(session_data.session_id)
-        
+
         try:
-            with open(file_path, 'w', encoding='utf-8') as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(session_data.to_dict(), f, indent=2, ensure_ascii=False)
             logger.debug(f"Saved session {session_data.session_id} to {file_path}")
         except Exception as e:
@@ -147,20 +152,20 @@ class SessionPersistence:
     async def load_session(self, session_id: str) -> SessionData | None:
         """
         Load session data from JSON file.
-        
+
         Args:
             session_id: Session ID to load
-            
+
         Returns:
             SessionData if found, None otherwise
         """
         file_path = self._get_session_file_path(session_id)
-        
+
         if not file_path.exists():
             return None
-            
+
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, encoding="utf-8") as f:
                 data = json.load(f)
             return SessionData.from_dict(data)
         except Exception as e:
@@ -170,15 +175,15 @@ class SessionPersistence:
     async def delete_session(self, session_id: str) -> bool:
         """
         Delete session file.
-        
+
         Args:
             session_id: Session ID to delete
-            
+
         Returns:
             True if deleted, False if not found
         """
         file_path = self._get_session_file_path(session_id)
-        
+
         if file_path.exists():
             try:
                 file_path.unlink()
@@ -190,46 +195,48 @@ class SessionPersistence:
         return False
 
     async def list_sessions(
-        self, 
-        limit: int = 50,
-        order_by: str = "last_activity"
+        self, limit: int = 50, order_by: str = "last_activity"
     ) -> list[SessionSummary]:
         """
         List available sessions.
-        
+
         Args:
             limit: Maximum sessions to return
             order_by: Sort field ('start_time', 'last_activity', 'message_count')
-            
+
         Returns:
             List of session summaries
         """
         sessions = []
-        
+
         for file_path in self._storage_path.glob("*.json"):
             try:
-                with open(file_path, 'r', encoding='utf-8') as f:
+                with open(file_path, encoding="utf-8") as f:
                     data = json.load(f)
-                
+
                 # Extract first user message for preview
                 first_message_preview = None
                 for msg in data.get("conversation_history", []):
                     if msg.get("role") == "user":
                         content = msg.get("content", "")
-                        first_message_preview = content[:100] + "..." if len(content) > 100 else content
+                        first_message_preview = (
+                            content[:100] + "..." if len(content) > 100 else content
+                        )
                         break
-                
-                sessions.append(SessionSummary(
-                    session_id=data["session_id"],
-                    start_time=datetime.fromisoformat(data["start_time"]),
-                    last_activity=datetime.fromisoformat(data["last_activity"]),
-                    message_count=len(data.get("conversation_history", [])),
-                    first_message_preview=first_message_preview
-                ))
+
+                sessions.append(
+                    SessionSummary(
+                        session_id=data["session_id"],
+                        start_time=datetime.fromisoformat(data["start_time"]),
+                        last_activity=datetime.fromisoformat(data["last_activity"]),
+                        message_count=len(data.get("conversation_history", [])),
+                        first_message_preview=first_message_preview,
+                    )
+                )
             except Exception as e:
                 logger.warning(f"Failed to read session file {file_path}: {e}")
                 continue
-        
+
         # Sort sessions
         if order_by == "start_time":
             sessions.sort(key=lambda s: s.start_time, reverse=True)
@@ -237,7 +244,7 @@ class SessionPersistence:
             sessions.sort(key=lambda s: s.message_count, reverse=True)
         else:  # default to last_activity
             sessions.sort(key=lambda s: s.last_activity, reverse=True)
-        
+
         return sessions[:limit]
 
     async def session_exists(self, session_id: str) -> bool:
@@ -245,14 +252,11 @@ class SessionPersistence:
         return self._get_session_file_path(session_id).exists()
 
     async def export_session(
-        self, 
-        session_id: str, 
-        export_path: Path | str,
-        format: str = "json"
+        self, session_id: str, export_path: Path | str, format: str = "json"
     ) -> None:
         """
         Export session to different format.
-        
+
         Args:
             session_id: Session to export
             export_path: Output file path
@@ -261,11 +265,11 @@ class SessionPersistence:
         session_data = await self.load_session(session_id)
         if not session_data:
             raise ValueError(f"Session {session_id} not found")
-        
+
         export_path = Path(export_path)
-        
+
         if format == "json":
-            with open(export_path, 'w', encoding='utf-8') as f:
+            with open(export_path, "w", encoding="utf-8") as f:
                 json.dump(session_data.to_dict(), f, indent=2, ensure_ascii=False)
         elif format == "markdown":
             await self._export_markdown(session_data, export_path)
@@ -274,14 +278,20 @@ class SessionPersistence:
         else:
             raise ValueError(f"Unsupported export format: {format}")
 
-    async def _export_markdown(self, session_data: SessionData, export_path: Path) -> None:
+    async def _export_markdown(
+        self, session_data: SessionData, export_path: Path
+    ) -> None:
         """Export session as markdown."""
-        with open(export_path, 'w', encoding='utf-8') as f:
+        with open(export_path, "w", encoding="utf-8") as f:
             f.write(f"# Claude Conversation - {session_data.session_id}\n\n")
-            f.write(f"**Started:** {session_data.start_time.strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"**Last Activity:** {session_data.last_activity.strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(
+                f"**Started:** {session_data.start_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+            )
+            f.write(
+                f"**Last Activity:** {session_data.last_activity.strftime('%Y-%m-%d %H:%M:%S')}\n"
+            )
             f.write(f"**Messages:** {session_data.message_count}\n\n")
-            
+
             for msg in session_data.conversation_history:
                 role_display = "**User**" if msg.role == "user" else "**Claude**"
                 f.write(f"## {role_display} ({msg.timestamp.strftime('%H:%M:%S')})\n\n")
@@ -289,13 +299,17 @@ class SessionPersistence:
 
     async def _export_text(self, session_data: SessionData, export_path: Path) -> None:
         """Export session as plain text."""
-        with open(export_path, 'w', encoding='utf-8') as f:
+        with open(export_path, "w", encoding="utf-8") as f:
             f.write(f"Claude Conversation - {session_data.session_id}\n")
             f.write("=" * 50 + "\n\n")
-            f.write(f"Started: {session_data.start_time.strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"Last Activity: {session_data.last_activity.strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(
+                f"Started: {session_data.start_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+            )
+            f.write(
+                f"Last Activity: {session_data.last_activity.strftime('%Y-%m-%d %H:%M:%S')}\n"
+            )
             f.write(f"Messages: {session_data.message_count}\n\n")
-            
+
             for msg in session_data.conversation_history:
                 role_display = "User" if msg.role == "user" else "Claude"
                 f.write(f"[{msg.timestamp.strftime('%H:%M:%S')}] {role_display}:\n")
