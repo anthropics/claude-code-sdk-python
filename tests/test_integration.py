@@ -195,10 +195,8 @@ class TestIntegration:
                     messages.append(msg)
 
                 # Verify transport was created with continuation option
-                mock_transport_class.assert_called_once_with()  # No parameters to constructor
-                mock_transport.configure.assert_called_once()
-                configure_call_args = mock_transport.configure.call_args
-                assert configure_call_args[0][0] == "Continue"  # prompt argument
-                assert configure_call_args[0][1].continue_conversation is True  # options argument
+                mock_transport_class.assert_called_once()
+                call_kwargs = mock_transport_class.call_args.kwargs
+                assert call_kwargs["options"].continue_conversation is True
 
         anyio.run(_test)
