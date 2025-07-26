@@ -34,9 +34,11 @@ class InternalClient:
         if transport is not None:
             chosen_transport = transport
         else:
-            chosen_transport = SubprocessCLITransport(prompt=prompt, options=options)
+            chosen_transport = SubprocessCLITransport()
 
         try:
+            # Configure the transport with prompt and options
+            chosen_transport.configure(prompt, options)
             await chosen_transport.connect()
 
             async for data in chosen_transport.receive_messages():

@@ -12,6 +12,7 @@ from ._errors import (
 )
 from ._internal.client import InternalClient
 from ._internal.transport import Transport
+from ._internal.transport.subprocess_cli import SubprocessCLITransport
 from .types import (
     AssistantMessage,
     ClaudeCodeOptions,
@@ -34,6 +35,7 @@ __all__ = [
     "query",
     # Transport
     "Transport",
+    "SubprocessCLITransport",
     # Types
     "PermissionMode",
     "McpServerConfig",
@@ -74,6 +76,7 @@ async def query(
                  Set options.cwd for working directory.
         transport: Optional transport implementation. If provided, this will be used
                   instead of the default transport selection based on options.
+                  The transport will be automatically configured with the prompt and options.
 
     Yields:
         Messages from the conversation
@@ -95,14 +98,14 @@ async def query(
         ):
             print(message)
 
-        # With custom transport
+        # With custom transport (no need to pass prompt to transport)
+        from claude_code_sdk import SubprocessCLITransport
+        
+        transport = SubprocessCLITransport(cli_path="/custom/path/to/claude")
         async for message in query(
             prompt="Hello",
-            transport=MyCustomTransport()
+            transport=transport
         ):
-            print(message)
-
-        async for message in query(prompt="Hello", transport=transport):
             print(message)
         ```
     """

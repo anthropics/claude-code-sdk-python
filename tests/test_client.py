@@ -106,9 +106,7 @@ class TestQueryFunction:
                     messages.append(msg)
 
                 # Verify transport was created with correct parameters
-                mock_transport_class.assert_called_once()
-                call_kwargs = mock_transport_class.call_args.kwargs
-                assert call_kwargs["prompt"] == "test"
-                assert call_kwargs["options"].cwd == "/custom/path"
+                mock_transport_class.assert_called_once_with()  # No parameters to constructor
+                mock_transport.configure.assert_called_once_with("test", options)
 
         anyio.run(_test)

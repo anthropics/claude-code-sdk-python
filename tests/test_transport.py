@@ -21,15 +21,14 @@ class TestSubprocessCLITransport:
             patch("pathlib.Path.exists", return_value=False),
             pytest.raises(CLINotFoundError) as exc_info,
         ):
-            SubprocessCLITransport(prompt="test", options=ClaudeCodeOptions())
+            SubprocessCLITransport()
 
         assert "Claude Code requires Node.js" in str(exc_info.value)
 
     def test_build_command_basic(self):
         """Test building basic CLI command."""
-        transport = SubprocessCLITransport(
-            prompt="Hello", options=ClaudeCodeOptions(), cli_path="/usr/bin/claude"
-        )
+        transport = SubprocessCLITransport(cli_path="/usr/bin/claude")
+        transport.configure("Hello", ClaudeCodeOptions())
 
         cmd = transport._build_command()
         assert cmd[0] == "/usr/bin/claude"
@@ -42,19 +41,16 @@ class TestSubprocessCLITransport:
         """Test that cli_path accepts pathlib.Path objects."""
         from pathlib import Path
 
-        transport = SubprocessCLITransport(
-            prompt="Hello",
-            options=ClaudeCodeOptions(),
-            cli_path=Path("/usr/bin/claude"),
-        )
+        transport = SubprocessCLITransport(cli_path=Path("/usr/bin/claude"))
 
         assert transport._cli_path == "/usr/bin/claude"
 
     def test_build_command_with_options(self):
         """Test building CLI command with options."""
-        transport = SubprocessCLITransport(
-            prompt="test",
-            options=ClaudeCodeOptions(
+        transport = SubprocessCLITransport(cli_path="/usr/bin/claude")
+        transport.configure(
+            "test",
+            ClaudeCodeOptions(
                 system_prompt="Be helpful",
                 allowed_tools=["Read", "Write"],
                 disallowed_tools=["Bash"],
@@ -62,7 +58,6 @@ class TestSubprocessCLITransport:
                 permission_mode="acceptEdits",
                 max_turns=5,
             ),
-            cli_path="/usr/bin/claude",
         )
 
         cmd = transport._build_command()
@@ -81,10 +76,10 @@ class TestSubprocessCLITransport:
 
     def test_session_continuation(self):
         """Test session continuation options."""
-        transport = SubprocessCLITransport(
-            prompt="Continue from before",
-            options=ClaudeCodeOptions(continue_conversation=True, resume="session-123"),
-            cli_path="/usr/bin/claude",
+        transport = SubprocessCLITransport(cli_path="/usr/bin/claude")
+        transport.configure(
+            "Continue from before",
+            ClaudeCodeOptions(continue_conversation=True, resume="session-123"),
         )
 
         cmd = transport._build_command()
@@ -105,11 +100,8 @@ class TestSubprocessCLITransport:
                 mock_process.stderr = MagicMock()
                 mock_exec.return_value = mock_process
 
-                transport = SubprocessCLITransport(
-                    prompt="test",
-                    options=ClaudeCodeOptions(),
-                    cli_path="/usr/bin/claude",
-                )
+                transport = SubprocessCLITransport(cli_path="/usr/bin/claude")
+                transport.configure("test", ClaudeCodeOptions())
 
                 await transport.connect()
                 assert transport._process is not None
@@ -124,9 +116,8 @@ class TestSubprocessCLITransport:
         """Test parsing messages from CLI output."""
         # This test is simplified to just test the parsing logic
         # The full async stream handling is tested in integration tests
-        transport = SubprocessCLITransport(
-            prompt="test", options=ClaudeCodeOptions(), cli_path="/usr/bin/claude"
-        )
+        transport = SubprocessCLITransport(cli_path="/usr/bin/claude")
+        transport.configure("test", ClaudeCodeOptions())
 
         # The actual message parsing is done by the client, not the transport
         # So we just verify the transport can be created and basic structure is correct
@@ -138,10 +129,10 @@ class TestSubprocessCLITransport:
         from claude_code_sdk._errors import CLIConnectionError
 
         async def _test():
-            transport = SubprocessCLITransport(
-                prompt="test",
-                options=ClaudeCodeOptions(cwd="/this/directory/does/not/exist"),
-                cli_path="/usr/bin/claude",
+            transport = SubprocessCLITransport(cli_path="/usr/bin/claude")
+            transport.configure(
+                "test",
+                ClaudeCodeOptions(cwd="/this/directory/does/not/exist"),
             )
 
             with pytest.raises(CLIConnectionError) as exc_info:
@@ -150,3 +141,14 @@ class TestSubprocessCLITransport:
             assert "/this/directory/does/not/exist" in str(exc_info.value)
 
         anyio.run(_test)
+
+    def test_build_command_without_configure(self):
+        """Test that _build_command raises error if not configured."""
+        from claude_code_sdk._errors import CLIConnectionError
+
+        transport = SubprocessCLITransport(cli_path="/usr/bin/claude")
+        
+        with pytest.raises(CLIConnectionError) as exc_info:
+            transport._build_command()
+        
+        assert "Transport not configured" in str(exc_info.value)

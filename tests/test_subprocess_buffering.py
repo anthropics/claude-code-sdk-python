@@ -50,9 +50,8 @@ class TestSubprocessBuffering:
 
             buffered_line = json.dumps(json_obj1) + "\n" + json.dumps(json_obj2)
 
-            transport = SubprocessCLITransport(
-                prompt="test", options=ClaudeCodeOptions(), cli_path="/usr/bin/claude"
-            )
+            transport = SubprocessCLITransport(cli_path="/usr/bin/claude")
+            transport.configure("test", ClaudeCodeOptions())
 
             mock_process = MagicMock()
             mock_process.returncode = None
@@ -85,9 +84,8 @@ class TestSubprocessBuffering:
 
             buffered_line = json.dumps(json_obj1) + "\n" + json.dumps(json_obj2)
 
-            transport = SubprocessCLITransport(
-                prompt="test", options=ClaudeCodeOptions(), cli_path="/usr/bin/claude"
-            )
+            transport = SubprocessCLITransport(cli_path="/usr/bin/claude")
+            transport.configure("test", ClaudeCodeOptions())
 
             mock_process = MagicMock()
             mock_process.returncode = None
@@ -115,9 +113,8 @@ class TestSubprocessBuffering:
 
             buffered_line = json.dumps(json_obj1) + "\n\n\n" + json.dumps(json_obj2)
 
-            transport = SubprocessCLITransport(
-                prompt="test", options=ClaudeCodeOptions(), cli_path="/usr/bin/claude"
-            )
+            transport = SubprocessCLITransport(cli_path="/usr/bin/claude")
+            transport.configure("test", ClaudeCodeOptions())
 
             mock_process = MagicMock()
             mock_process.returncode = None
@@ -161,9 +158,8 @@ class TestSubprocessBuffering:
             part2 = complete_json[100:250]
             part3 = complete_json[250:]
 
-            transport = SubprocessCLITransport(
-                prompt="test", options=ClaudeCodeOptions(), cli_path="/usr/bin/claude"
-            )
+            transport = SubprocessCLITransport(cli_path="/usr/bin/claude")
+            transport.configure("test", ClaudeCodeOptions())
 
             mock_process = MagicMock()
             mock_process.returncode = None
@@ -209,9 +205,8 @@ class TestSubprocessBuffering:
                 for i in range(0, len(complete_json), chunk_size)
             ]
 
-            transport = SubprocessCLITransport(
-                prompt="test", options=ClaudeCodeOptions(), cli_path="/usr/bin/claude"
-            )
+            transport = SubprocessCLITransport(cli_path="/usr/bin/claude")
+            transport.configure("test", ClaudeCodeOptions())
 
             mock_process = MagicMock()
             mock_process.returncode = None
@@ -239,9 +234,8 @@ class TestSubprocessBuffering:
         async def _test() -> None:
             huge_incomplete = '{"data": "' + "x" * (_MAX_BUFFER_SIZE + 1000)
 
-            transport = SubprocessCLITransport(
-                prompt="test", options=ClaudeCodeOptions(), cli_path="/usr/bin/claude"
-            )
+            transport = SubprocessCLITransport(cli_path="/usr/bin/claude")
+            transport.configure("test", ClaudeCodeOptions())
 
             mock_process = MagicMock()
             mock_process.returncode = None
@@ -281,9 +275,8 @@ class TestSubprocessBuffering:
                 large_json[3000:] + "\n" + msg3,
             ]
 
-            transport = SubprocessCLITransport(
-                prompt="test", options=ClaudeCodeOptions(), cli_path="/usr/bin/claude"
-            )
+            transport = SubprocessCLITransport(cli_path="/usr/bin/claude")
+            transport.configure("test", ClaudeCodeOptions())
 
             mock_process = MagicMock()
             mock_process.returncode = None
