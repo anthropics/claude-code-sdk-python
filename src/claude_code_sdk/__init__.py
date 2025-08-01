@@ -7,6 +7,7 @@ from ._errors import (
     CLINotFoundError,
     ProcessError,
 )
+from ._internal.transport import Transport
 from .client import ClaudeSDKClient
 from .query import query
 from .types import (
@@ -29,6 +30,7 @@ __version__ = "0.0.19"
 __all__ = [
     # Main exports
     "query",
+    "Transport",
     "ClaudeSDKClient",
     # Types
     "PermissionMode",
