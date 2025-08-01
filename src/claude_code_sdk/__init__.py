@@ -6,7 +6,6 @@ from ._errors import (
     CLIJSONDecodeError,
     CLINotFoundError,
     ProcessError,
-    SessionError,
 )
 from .client import ClaudeSDKClient
 from .query import query
@@ -26,7 +25,7 @@ from .types import (
     UserMessage,
 )
 
-__version__ = "0.0.19"
+__version__ = "0.0.17"
 
 __all__ = [
     # Main exports
@@ -52,5 +51,4 @@ __all__ = [
     "CLINotFoundError",
     "ProcessError",
     "CLIJSONDecodeError",
-    "SessionError",
 ]
