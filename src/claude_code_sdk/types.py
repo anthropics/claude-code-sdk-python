@@ -1,7 +1,6 @@
 """Type definitions for Claude SDK."""
 
 from dataclasses import dataclass, field
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal, TypedDict
 
@@ -9,9 +8,6 @@ from typing_extensions import NotRequired  # For Python < 3.11 compatibility
 
 # Permission modes
 PermissionMode = Literal["default", "acceptEdits", "bypassPermissions"]
-
-# CLI output format modes
-CLIOutputFormat = Literal["stream-json", "json"]
 
 
 # MCP Server config

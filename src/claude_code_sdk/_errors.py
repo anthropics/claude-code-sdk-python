@@ -54,9 +54,3 @@ class MessageParseError(ClaudeSDKError):
     def __init__(self, message: str, data: dict[str, Any] | None = None):
         self.data = data
         super().__init__(message)
-
-
-class SessionError(ClaudeSDKError):
-    """Base exception for session-related errors."""
-
-    pass
