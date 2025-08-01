@@ -10,6 +10,9 @@ from typing_extensions import NotRequired  # For Python < 3.11 compatibility
 # Permission modes
 PermissionMode = Literal["default", "acceptEdits", "bypassPermissions"]
 
+# CLI output format modes
+CLIOutputFormat = Literal["stream-json", "json"]
+
 
 # MCP Server config
 class McpStdioServerConfig(TypedDict):
@@ -128,27 +131,3 @@ class ClaudeCodeOptions:
     model: str | None = None
     permission_prompt_tool_name: str | None = None
     cwd: str | Path | None = None
-
-
-@dataclass
-class TokenUsage:
-    """Token usage statistics."""
-
-    input_tokens: int = 0
-    cache_creation_input_tokens: int = 0
-    cache_read_input_tokens: int = 0
-    output_tokens: int = 0
-    server_tool_use: dict[str, Any] = field(default_factory=dict)
-    service_tier: str = "standard"
-
-
-@dataclass
-class ResponseMessage:
-    """Response message from Claude."""
-
-    content: str
-    role: str
-    timestamp: datetime
-    message_type: str
-    session_id: str | None = None
-    usage: TokenUsage | None = None

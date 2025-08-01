@@ -10,7 +10,7 @@ from ._errors import (
 )
 from .client import ClaudeSDKClient
 from .query import query
-from .stateful_client import StatefulCLIClient
+from .session_persistent_client import SessionPersistentClient
 from .types import (
     AssistantMessage,
     ClaudeCodeOptions,
@@ -32,7 +32,7 @@ __all__ = [
     # Main exports
     "query",
     "ClaudeSDKClient",
-    "StatefulCLIClient",
+    "SessionPersistentClient",
     # Types
     "PermissionMode",
     "McpServerConfig",
