@@ -89,6 +89,7 @@ class AssistantMessage:
     """Assistant message with content blocks."""
 
     content: list[ContentBlock]
+    model: str
 
 
 @dataclass

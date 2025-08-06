@@ -108,7 +108,9 @@ def parse_message(data: dict[str, Any]) -> Message:
                                 )
                             )
 
-                return AssistantMessage(content=content_blocks)
+                return AssistantMessage(
+                    content=content_blocks, model=data["message"]["model"]
+                )
             except KeyError as e:
                 raise MessageParseError(
                     f"Missing required field in assistant message: {e}", data
