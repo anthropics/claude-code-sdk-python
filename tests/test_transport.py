@@ -258,14 +258,14 @@ class TestSubprocessCLITransport:
         assert "mcpServers" in config
         assert config["mcpServers"] == mcp_servers
 
-    def test_build_command_with_mcp_config_file(self):
-        """Test building CLI command with mcp_config_file option."""
+    def test_build_command_with_mcp_servers_as_file_path(self):
+        """Test building CLI command with mcp_servers as file path."""
         from pathlib import Path
 
         # Test with string path
         transport = SubprocessCLITransport(
             prompt="test",
-            options=ClaudeCodeOptions(mcp_config_file="/path/to/mcp-config.json"),
+            options=ClaudeCodeOptions(mcp_servers="/path/to/mcp-config.json"),
             cli_path="/usr/bin/claude",
         )
 
@@ -277,7 +277,7 @@ class TestSubprocessCLITransport:
         # Test with Path object
         transport = SubprocessCLITransport(
             prompt="test",
-            options=ClaudeCodeOptions(mcp_config_file=Path("/path/to/mcp-config.json")),
+            options=ClaudeCodeOptions(mcp_servers=Path("/path/to/mcp-config.json")),
             cli_path="/usr/bin/claude",
         )
 
@@ -286,29 +286,17 @@ class TestSubprocessCLITransport:
         mcp_idx = cmd.index("--mcp-config")
         assert cmd[mcp_idx + 1] == "/path/to/mcp-config.json"
 
-    def test_mcp_servers_takes_precedence_over_mcp_config_file(self):
-        """Test that mcp_servers takes precedence over mcp_config_file when both are provided."""
-        import json
-
-        mcp_servers = {"server": {"type": "stdio", "command": "test"}}
-
+    def test_build_command_with_mcp_servers_as_json_string(self):
+        """Test building CLI command with mcp_servers as JSON string."""
+        json_config = '{"mcpServers": {"server": {"type": "stdio", "command": "test"}}}'
+        
         transport = SubprocessCLITransport(
             prompt="test",
-            options=ClaudeCodeOptions(
-                mcp_servers=mcp_servers,
-                mcp_config_file="/path/to/config.json",  # This should be ignored
-            ),
+            options=ClaudeCodeOptions(mcp_servers=json_config),
             cli_path="/usr/bin/claude",
         )
 
         cmd = transport._build_command()
-
-        # Should use mcp_servers, not mcp_config_file
         assert "--mcp-config" in cmd
         mcp_idx = cmd.index("--mcp-config")
-        mcp_config_value = cmd[mcp_idx + 1]
-
-        # Should be JSON, not file path
-        config = json.loads(mcp_config_value)
-        assert "mcpServers" in config
-        assert config["mcpServers"] == mcp_servers
+        assert cmd[mcp_idx + 1] == json_config

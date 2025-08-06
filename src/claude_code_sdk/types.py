@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict, Union
 
 from typing_extensions import NotRequired  # For Python < 3.11 compatibility
 
@@ -117,8 +117,7 @@ class ClaudeCodeOptions:
     max_thinking_tokens: int = 8000
     system_prompt: str | None = None
     append_system_prompt: str | None = None
-    mcp_servers: dict[str, McpServerConfig] = field(default_factory=dict)
-    mcp_config_file: str | Path | None = None
+    mcp_servers: Union[dict[str, McpServerConfig], str, Path, None] = field(default_factory=dict)
     permission_mode: PermissionMode | None = None
     continue_conversation: bool = False
     resume: str | None = None
