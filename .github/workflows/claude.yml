@@ -55,16 +55,13 @@ jobs:
           # assignee_trigger: "claude-bot"
           
           # Allow Claude to run linters, typecheckers, and tests
-          allowed_tools: "Bash(ruff check *),Bash(ruff format *),Bash(mypy *),Bash(python -m pytest *)"
+          allowed_tools: "Bash(python -m ruff check *),Bash(python -m ruff format *),Bash(python -m mypy *),Bash(python -m pytest *)"
           
           # Optional: Add custom instructions for Claude to customize its behavior for your project
-          custom_instructions: |
-            You can run the following commands to check code quality:
-            - ruff check src/ tests/ --fix (to check and fix linting issues)
-            - ruff format src/ tests/ (to format code)
-            - mypy src/ (to run type checking)
-            - python -m pytest tests/ (to run tests)
-            - python -m pytest tests/test_*.py (to run specific test files)
+          # custom_instructions: |
+          #   Follow our coding standards
+          #   Ensure all new code has tests
+          #   Use TypeScript for new files
           
           # Optional: Custom environment variables for Claude
           # claude_env: |
