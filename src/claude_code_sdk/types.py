@@ -118,6 +118,7 @@ class ClaudeCodeOptions:
     system_prompt: str | None = None
     append_system_prompt: str | None = None
     mcp_servers: dict[str, McpServerConfig] = field(default_factory=dict)
+    mcp_config_file: str | Path | None = None
     permission_mode: PermissionMode | None = None
     continue_conversation: bool = False
     resume: str | None = None

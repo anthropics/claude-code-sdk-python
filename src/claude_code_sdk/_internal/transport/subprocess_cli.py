@@ -133,6 +133,8 @@ class SubprocessCLITransport(Transport):
             cmd.extend(
                 ["--mcp-config", json.dumps({"mcpServers": self._options.mcp_servers})]
             )
+        elif self._options.mcp_config_file:
+            cmd.extend(["--mcp-config", str(self._options.mcp_config_file)])
 
         # Add extra args for future CLI flags
         for flag, value in self._options.extra_args.items():
