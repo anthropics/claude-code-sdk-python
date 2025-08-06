@@ -289,7 +289,6 @@ class TestSubprocessCLITransport:
     def test_build_command_with_mcp_servers_as_json_string(self):
         """Test building CLI command with mcp_servers as JSON string."""
         json_config = '{"mcpServers": {"server": {"type": "stdio", "command": "test"}}}'
-        
         transport = SubprocessCLITransport(
             prompt="test",
             options=ClaudeCodeOptions(mcp_servers=json_config),
