@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal, TypedDict, Union
+from typing import Any, Literal, TypedDict
 
 from typing_extensions import NotRequired  # For Python < 3.11 compatibility
 
