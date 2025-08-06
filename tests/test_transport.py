@@ -79,6 +79,24 @@ class TestSubprocessCLITransport:
         assert "--max-turns" in cmd
         assert "5" in cmd
 
+    def test_build_command_with_add_dirs(self):
+        """Test building CLI command with add_dirs option."""
+        from pathlib import Path
+
+        transport = SubprocessCLITransport(
+            prompt="test",
+            options=ClaudeCodeOptions(
+                add_dirs=["/path/to/dir1", Path("/path/to/dir2")]
+            ),
+            cli_path="/usr/bin/claude",
+        )
+
+        cmd = transport._build_command()
+        cmd_str = " ".join(cmd)
+
+        # Check that the command string contains the expected --add-dir flags
+        assert "--add-dir /path/to/dir1 --add-dir /path/to/dir2" in cmd_str
+
     def test_session_continuation(self):
         """Test session continuation options."""
         transport = SubprocessCLITransport(
@@ -103,6 +121,12 @@ class TestSubprocessCLITransport:
                 mock_process.wait = AsyncMock()
                 mock_process.stdout = MagicMock()
                 mock_process.stderr = MagicMock()
+
+                # Mock stdin with aclose method
+                mock_stdin = MagicMock()
+                mock_stdin.aclose = AsyncMock()
+                mock_process.stdin = mock_stdin
+
                 mock_exec.return_value = mock_process
 
                 transport = SubprocessCLITransport(
@@ -150,3 +174,56 @@ class TestSubprocessCLITransport:
             assert "/this/directory/does/not/exist" in str(exc_info.value)
 
         anyio.run(_test)
+
+    def test_build_command_with_settings_file(self):
+        """Test building CLI command with settings as file path."""
+        transport = SubprocessCLITransport(
+            prompt="test",
+            options=ClaudeCodeOptions(settings="/path/to/settings.json"),
+            cli_path="/usr/bin/claude",
+        )
+
+        cmd = transport._build_command()
+        assert "--settings" in cmd
+        assert "/path/to/settings.json" in cmd
+
+    def test_build_command_with_settings_json(self):
+        """Test building CLI command with settings as JSON object."""
+        settings_json = '{"permissions": {"allow": ["Bash(ls:*)"]}}'
+        transport = SubprocessCLITransport(
+            prompt="test",
+            options=ClaudeCodeOptions(settings=settings_json),
+            cli_path="/usr/bin/claude",
+        )
+
+        cmd = transport._build_command()
+        assert "--settings" in cmd
+        assert settings_json in cmd
+
+    def test_build_command_with_extra_args(self):
+        """Test building CLI command with extra_args for future flags."""
+        transport = SubprocessCLITransport(
+            prompt="test",
+            options=ClaudeCodeOptions(
+                extra_args={
+                    "new-flag": "value",
+                    "boolean-flag": None,
+                    "another-option": "test-value",
+                }
+            ),
+            cli_path="/usr/bin/claude",
+        )
+
+        cmd = transport._build_command()
+        cmd_str = " ".join(cmd)
+
+        # Check flags with values
+        assert "--new-flag value" in cmd_str
+        assert "--another-option test-value" in cmd_str
+
+        # Check boolean flag (no value)
+        assert "--boolean-flag" in cmd
+        # Make sure boolean flag doesn't have a value after it
+        boolean_idx = cmd.index("--boolean-flag")
+        # Either it's the last element or the next element is another flag
+        assert boolean_idx == len(cmd) - 1 or cmd[boolean_idx + 1].startswith("--")

@@ -81,7 +81,7 @@ ContentBlock = TextBlock | ThinkingBlock | ToolUseBlock | ToolResultBlock
 class UserMessage:
     """User message."""
 
-    content: str
+    content: str | list[ContentBlock]
 
 
 @dataclass
@@ -125,7 +125,6 @@ class ClaudeCodeOptions:
     max_thinking_tokens: int = 8000
     system_prompt: str | None = None
     append_system_prompt: str | None = None
-    mcp_tools: list[str] = field(default_factory=list)
     mcp_servers: dict[str, McpServerConfig] = field(default_factory=dict)
     permission_mode: PermissionMode | None = None
     continue_conversation: bool = False
@@ -135,3 +134,8 @@ class ClaudeCodeOptions:
     model: str | None = None
     permission_prompt_tool_name: str | None = None
     cwd: str | Path | None = None
+    settings: str | None = None
+    add_dirs: list[str | Path] = field(default_factory=list)
+    extra_args: dict[str, str | None] = field(
+        default_factory=dict
+    )  # Pass arbitrary CLI flags
