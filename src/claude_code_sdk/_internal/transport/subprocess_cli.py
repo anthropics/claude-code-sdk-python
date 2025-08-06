@@ -133,7 +133,10 @@ class SubprocessCLITransport(Transport):
             if isinstance(self._options.mcp_servers, dict):
                 # Dict format: serialize to JSON
                 cmd.extend(
-                    ["--mcp-config", json.dumps({"mcpServers": self._options.mcp_servers})]
+                    [
+                        "--mcp-config",
+                        json.dumps({"mcpServers": self._options.mcp_servers}),
+                    ]
                 )
             else:
                 # String or Path format: pass directly as file path or JSON string
