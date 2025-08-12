@@ -2,6 +2,7 @@
 
 import os
 from collections.abc import AsyncIterable, AsyncIterator
+from pathlib import Path
 from typing import Any
 
 from ._internal.client import InternalClient
@@ -12,6 +13,7 @@ async def query(
     *,
     prompt: str | AsyncIterable[dict[str, Any]],
     options: ClaudeCodeOptions | None = None,
+    cli_path: Path | None = None
 ) -> AsyncIterator[Message]:
     """
     Query Claude Code for one-shot or unidirectional streaming interactions.
@@ -56,6 +58,7 @@ async def query(
                  - 'acceptEdits': Auto-accept file edits
                  - 'bypassPermissions': Allow all tools (use with caution)
                  Set options.cwd for working directory.
+         cli_path: Optional Path of Claude Code binary.
 
     Yields:
         Messages from the conversation
@@ -98,5 +101,5 @@ async def query(
 
     client = InternalClient()
 
-    async for message in client.process_query(prompt=prompt, options=options):
+    async for message in client.process_query(prompt=prompt, options=options, cli_path=cli_path):
         yield message
