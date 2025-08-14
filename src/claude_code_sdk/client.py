@@ -2,6 +2,7 @@
 
 import os
 from collections.abc import AsyncIterable, AsyncIterator
+from pathlib import Path
 from typing import Any
 
 from ._errors import CLIConnectionError
@@ -99,7 +100,9 @@ class ClaudeSDKClient:
         os.environ["CLAUDE_CODE_ENTRYPOINT"] = "sdk-py-client"
 
     async def connect(
-        self, prompt: str | AsyncIterable[dict[str, Any]] | None = None
+        self,
+        prompt: str | AsyncIterable[dict[str, Any]] | None = None,
+        cli_path: Path | None = None
     ) -> None:
         """Connect to Claude with a prompt or message stream."""
         from ._internal.transport.subprocess_cli import SubprocessCLITransport
@@ -115,6 +118,7 @@ class ClaudeSDKClient:
         self._transport = SubprocessCLITransport(
             prompt=_empty_stream() if prompt is None else prompt,
             options=self.options,
+            cli_path=cli_path
         )
         await self._transport.connect()
 

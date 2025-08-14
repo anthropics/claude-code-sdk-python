@@ -1,6 +1,7 @@
 """Internal client implementation."""
 
 from collections.abc import AsyncIterable, AsyncIterator
+from pathlib import Path
 from typing import Any
 
 from ..types import ClaudeCodeOptions, Message
@@ -15,12 +16,15 @@ class InternalClient:
         """Initialize the internal client."""
 
     async def process_query(
-        self, prompt: str | AsyncIterable[dict[str, Any]], options: ClaudeCodeOptions
+        self,
+        prompt: str | AsyncIterable[dict[str, Any]],
+        options: ClaudeCodeOptions,
+        cli_path: Path | None = None
     ) -> AsyncIterator[Message]:
         """Process a query through transport."""
 
         transport = SubprocessCLITransport(
-            prompt=prompt, options=options, close_stdin_after_prompt=True
+            prompt=prompt, options=options, cli_path=cli_path, close_stdin_after_prompt=True
         )
 
         try:
