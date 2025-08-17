@@ -39,7 +39,7 @@ class SubprocessCLITransport(Transport):
         self._is_streaming = not isinstance(prompt, str)
         self._options = options
         self._cli_path = str(cli_path) if cli_path else self._find_cli()
-        self._cwd: str | None = None
+        self._cwd = str(options.cwd) if options.cwd else None
         self._process: Process | None = None
         self._stdout_stream: TextReceiveStream | None = None
         self._stderr_stream: TextReceiveStream | None = None
