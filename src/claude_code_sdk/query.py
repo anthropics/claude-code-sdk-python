@@ -111,6 +111,7 @@ async def query(
         ):
             print(message)
         ```
+
     """
     if options is None:
         options = ClaudeCodeOptions()

@@ -1,6 +1,7 @@
 """Internal client implementation."""
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterable, AsyncIterator
+from typing import Any
 
 from ..types import (
     ClaudeCodeOptions,
@@ -19,7 +20,7 @@ class InternalClient:
 
     async def process_query(
         self,
-        prompt: str,
+        prompt: str | AsyncIterable[dict[str, Any]],
         options: ClaudeCodeOptions,
         transport: Transport | None = None,
     ) -> AsyncIterator[Message]:
@@ -34,8 +35,6 @@ class InternalClient:
             )
 
         try:
-            # Configure the transport with prompt and options
-            chosen_transport.configure(prompt, options)
             await chosen_transport.connect()
 
             async for data in chosen_transport.receive_messages():
