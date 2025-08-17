@@ -28,7 +28,6 @@ _MAX_BUFFER_SIZE = 1024 * 1024  # 1MB buffer limit
 class SubprocessCLITransport(Transport):
     """Subprocess transport using Claude Code CLI."""
 
-
     def __init__(
         self,
         prompt: str | AsyncIterable[dict[str, Any]],
@@ -50,12 +49,6 @@ class SubprocessCLITransport(Transport):
         self._close_stdin_after_prompt = close_stdin_after_prompt
         self._task_group: anyio.abc.TaskGroup | None = None
         self._stderr_file: Any = None  # tempfile.NamedTemporaryFile
-
-    def configure(self, prompt: str, options: ClaudeCodeOptions) -> None:
-        """Configure transport with prompt and options."""
-        self._prompt = prompt
-        self._options = options
-        self._cwd = str(options.cwd) if options.cwd else None
 
     def _find_cli(self) -> str:
         """Find Claude Code CLI binary."""
@@ -94,9 +87,6 @@ class SubprocessCLITransport(Transport):
 
     def _build_command(self) -> list[str]:
         """Build CLI command with arguments."""
-        if not self._prompt or not self._options:
-            raise CLIConnectionError("Transport not configured. Call configure() first.")
-            
         cmd = [self._cli_path, "--output-format", "stream-json", "--verbose"]
 
         if self._options.system_prompt:

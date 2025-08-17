@@ -99,11 +99,11 @@ async def query(
     Example - With custom transport:
         ```python
         from claude_code_sdk import query, Transport
-        
+
         class MyCustomTransport(Transport):
             # Implement custom transport logic
             pass
-        
+
         transport = MyCustomTransport()
         async for message in query(
             prompt="Hello",
@@ -119,5 +119,7 @@ async def query(
 
     client = InternalClient()
 
-    async for message in client.process_query(prompt=prompt, options=options, transport=transport):
+    async for message in client.process_query(
+        prompt=prompt, options=options, transport=transport
+    ):
         yield message
