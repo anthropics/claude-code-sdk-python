@@ -1,10 +1,14 @@
 """Type definitions for Claude SDK."""
 
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal, TypedDict
 
-from typing_extensions import NotRequired  # For Python < 3.11 compatibility
+if sys.version_info >= (3, 11):
+    from typing import NotRequired
+else:
+    from typing_extensions import NotRequired
 
 # Permission modes
 PermissionMode = Literal["default", "acceptEdits", "plan", "bypassPermissions"]
