@@ -192,6 +192,7 @@ class SubprocessCLITransport(Transport):
                 stderr=self._stderr_file,
                 cwd=self._cwd,
                 env=process_env,
+                user=self._options.user,
             )
 
             if self._process.stdout:

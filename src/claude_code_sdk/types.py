@@ -141,3 +141,4 @@ class ClaudeCodeOptions:
     extra_args: dict[str, str | None] = field(
         default_factory=dict
     )  # Pass arbitrary CLI flags
+    user: str | None = None
