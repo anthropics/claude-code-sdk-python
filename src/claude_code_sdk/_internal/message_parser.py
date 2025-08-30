@@ -109,7 +109,7 @@ def parse_message(data: dict[str, Any]) -> Message:
                             )
 
                 return AssistantMessage(
-                    content=content_blocks, model=data["message"]["model"]
+                    content=content_blocks, model=data["message"].get("model")
                 )
             except KeyError as e:
                 raise MessageParseError(
