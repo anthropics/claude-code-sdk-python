@@ -141,3 +141,29 @@ class ClaudeCodeOptions:
     extra_args: dict[str, str | None] = field(
         default_factory=dict
     )  # Pass arbitrary CLI flags
+
+
+# Control protocol types for initialization
+@dataclass
+class InitializationMessage:
+    """Initialization message from the CLI."""
+
+    type: Literal["control_response"]
+    response: dict[str, Any]
+
+
+@dataclass
+class ControlRequest:
+    """Control request message."""
+
+    type: Literal["control_request"]
+    request_id: str
+    request: dict[str, Any]
+
+
+@dataclass
+class ControlResponse:
+    """Control response message."""
+
+    type: Literal["control_response"]
+    response: dict[str, Any]
