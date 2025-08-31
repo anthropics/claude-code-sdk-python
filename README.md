@@ -76,6 +76,91 @@ options = ClaudeCodeOptions(
 )
 ```
 
+### SDK MCP Servers (In-Process)
+
+The SDK now supports in-process MCP servers that run directly within your Python application, eliminating the need for separate processes.
+
+#### Creating a Simple Tool
+
+```python
+from claude_code_sdk import tool, create_sdk_mcp_server
+
+# Define a tool using the @tool decorator
+@tool("greet", "Greet a user", {"name": str})
+async def greet_user(args):
+    return {
+        "content": [
+            {"type": "text", "text": f"Hello, {args['name']}!"}
+        ]
+    }
+
+# Create an SDK MCP server
+server = create_sdk_mcp_server(
+    name="my-tools",
+    version="1.0.0",
+    tools=[greet_user]
+)
+
+# Use it with Claude
+options = ClaudeCodeOptions(
+    mcp_servers={"tools": server}
+)
+
+async for message in query(prompt="Greet Alice", options=options):
+    print(message)
+```
+
+#### Benefits Over External MCP Servers
+
+- **No subprocess management** - Runs in the same process as your application
+- **Better performance** - No IPC overhead for tool calls
+- **Simpler deployment** - Single Python process instead of multiple
+- **Easier debugging** - All code runs in the same process
+- **Type safety** - Direct Python function calls with type hints
+
+#### Migration from External Servers
+
+```python
+# BEFORE: External MCP server (separate process)
+options = ClaudeCodeOptions(
+    mcp_servers={
+        "calculator": {
+            "type": "stdio",
+            "command": "python",
+            "args": ["-m", "calculator_server"]
+        }
+    }
+)
+
+# AFTER: SDK MCP server (in-process)
+from my_tools import add, subtract  # Your tool functions
+
+calculator = create_sdk_mcp_server(
+    name="calculator",
+    tools=[add, subtract]
+)
+
+options = ClaudeCodeOptions(
+    mcp_servers={"calculator": calculator}
+)
+```
+
+#### Mixed Server Support
+
+You can use both SDK and external MCP servers together:
+
+```python
+options = ClaudeCodeOptions(
+    mcp_servers={
+        "internal": sdk_server,      # In-process SDK server
+        "external": {                # External subprocess server
+            "type": "stdio",
+            "command": "external-server"
+        }
+    }
+)
+```
+
 ## API Reference
 
 ### `query(prompt, options=None)`
@@ -125,7 +210,9 @@ See the [Claude Code documentation](https://docs.anthropic.com/en/docs/claude-co
 
 ## Examples
 
-See [examples/quick_start.py](examples/quick_start.py) for a complete working example.
+- [examples/quick_start.py](examples/quick_start.py) - Basic usage example
+- [examples/mcp_calculator.py](examples/mcp_calculator.py) - SDK MCP server with calculator tools
+- [examples/migration_external_to_sdk.py](examples/migration_external_to_sdk.py) - Migration guide from external to SDK servers
 
 ## License
 

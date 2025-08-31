@@ -50,18 +50,49 @@ def tool(
 ) -> Callable[[Callable[[Any], Awaitable[dict[str, Any]]]], SdkMcpTool]:
     """Decorator for defining MCP tools with type safety.
     
-    Example:
-        @tool("echo", "Echo input", {"input": str})
-        async def echo_tool(args):
-            return {"output": args["input"]}
+    Creates a tool that can be used with SDK MCP servers. The tool runs
+    in-process within your Python application, providing better performance
+    than external MCP servers.
     
     Args:
-        name: Tool name
-        description: Tool description  
-        input_schema: Input schema as a type or dict
-        
+        name: Unique identifier for the tool. This is what Claude will use
+            to reference the tool in function calls.
+        description: Human-readable description of what the tool does.
+            This helps Claude understand when to use the tool.
+        input_schema: Schema defining the tool's input parameters.
+            Can be either:
+            - A dictionary mapping parameter names to types (e.g., {"text": str})
+            - A TypedDict class for more complex schemas
+            - A JSON Schema dictionary for full validation
+    
     Returns:
-        Decorator function that creates an SdkMcpTool
+        A decorator function that wraps the tool implementation and returns
+        an SdkMcpTool instance ready for use with create_sdk_mcp_server().
+    
+    Example:
+        Basic tool with simple schema:
+        >>> @tool("greet", "Greet a user", {"name": str})
+        ... async def greet(args):
+        ...     return {"content": [{"type": "text", "text": f"Hello, {args['name']}!"}]}
+        
+        Tool with multiple parameters:
+        >>> @tool("add", "Add two numbers", {"a": float, "b": float})
+        ... async def add_numbers(args):
+        ...     result = args["a"] + args["b"]
+        ...     return {"content": [{"type": "text", "text": f"Result: {result}"}]}
+        
+        Tool with error handling:
+        >>> @tool("divide", "Divide two numbers", {"a": float, "b": float})
+        ... async def divide(args):
+        ...     if args["b"] == 0:
+        ...         return {"content": [{"type": "text", "text": "Error: Division by zero"}], "is_error": True}
+        ...     return {"content": [{"type": "text", "text": f"Result: {args['a'] / args['b']}"}]}
+    
+    Notes:
+        - The tool function must be async (defined with async def)
+        - The function receives a single dict argument with the input parameters
+        - The function should return a dict with a "content" key containing the response
+        - Errors can be indicated by including "is_error": True in the response
     """
     def decorator(handler: Callable[[Any], Awaitable[dict[str, Any]]]) -> SdkMcpTool:
         return SdkMcpTool(name=name, description=description, input_schema=input_schema, handler=handler)
@@ -73,22 +104,74 @@ def create_sdk_mcp_server(
     version: str = "1.0.0",
     tools: list[SdkMcpTool] | None = None
 ) -> McpSdkServerConfig:
-    """Create an in-process MCP server.
+    """Create an in-process MCP server that runs within your Python application.
+    
+    Unlike external MCP servers that run as separate processes, SDK MCP servers
+    run directly in your application's process. This provides:
+    - Better performance (no IPC overhead)
+    - Simpler deployment (single process)
+    - Easier debugging (same process)
+    - Direct access to your application's state
     
     Args:
-        name: Server name
-        version: Server version
-        tools: List of tools to register
+        name: Unique identifier for the server. This name is used to reference
+            the server in the mcp_servers configuration.
+        version: Server version string. Defaults to "1.0.0". This is for
+            informational purposes and doesn't affect functionality.
+        tools: List of SdkMcpTool instances created with the @tool decorator.
+            These are the functions that Claude can call through this server.
+            If None or empty, the server will have no tools (rarely useful).
     
     Returns:
-        MCP server configuration for use with Claude SDK
+        McpSdkServerConfig: A configuration object that can be passed to
+        ClaudeCodeOptions.mcp_servers. This config contains the server
+        instance and metadata needed for the SDK to route tool calls.
     
     Example:
-        server = create_sdk_mcp_server(
-            name="calculator",
-            version="1.0.0",
-            tools=[add_numbers, subtract_numbers]
-        )
+        Simple calculator server:
+        >>> @tool("add", "Add numbers", {"a": float, "b": float})
+        ... async def add(args):
+        ...     return {"content": [{"type": "text", "text": f"Sum: {args['a'] + args['b']}"}]}
+        >>> 
+        >>> @tool("multiply", "Multiply numbers", {"a": float, "b": float})
+        ... async def multiply(args):
+        ...     return {"content": [{"type": "text", "text": f"Product: {args['a'] * args['b']}"}]}
+        >>> 
+        >>> calculator = create_sdk_mcp_server(
+        ...     name="calculator",
+        ...     version="2.0.0",
+        ...     tools=[add, multiply]
+        ... )
+        >>> 
+        >>> # Use with Claude
+        >>> options = ClaudeCodeOptions(
+        ...     mcp_servers={"calc": calculator},
+        ...     allowed_tools=["add", "multiply"]
+        ... )
+        
+        Server with application state access:
+        >>> class DataStore:
+        ...     def __init__(self):
+        ...         self.items = []
+        ... 
+        >>> store = DataStore()
+        >>> 
+        >>> @tool("add_item", "Add item to store", {"item": str})
+        ... async def add_item(args):
+        ...     store.items.append(args["item"])
+        ...     return {"content": [{"type": "text", "text": f"Added: {args['item']}"}]}
+        >>> 
+        >>> server = create_sdk_mcp_server("store", tools=[add_item])
+    
+    Notes:
+        - The server runs in the same process as your Python application
+        - Tools have direct access to your application's variables and state
+        - No subprocess or IPC overhead for tool calls
+        - Server lifecycle is managed automatically by the SDK
+    
+    See Also:
+        - tool(): Decorator for creating tool functions
+        - ClaudeCodeOptions: Configuration for using servers with query()
     """
     from mcp.server import Server
     
