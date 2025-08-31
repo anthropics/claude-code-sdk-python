@@ -1,5 +1,6 @@
 """Subprocess transport implementation using Claude Code CLI."""
 
+import asyncio
 import json
 import logging
 import os
@@ -9,7 +10,7 @@ from collections import deque
 from collections.abc import AsyncIterable, AsyncIterator
 from pathlib import Path
 from subprocess import PIPE
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import anyio
 from anyio.abc import Process
@@ -19,6 +20,11 @@ from ..._errors import CLIConnectionError, CLINotFoundError, ProcessError
 from ..._errors import CLIJSONDecodeError as SDKJSONDecodeError
 from ...types import ClaudeCodeOptions
 from . import Transport
+from .sdk_control import SdkControlClientTransport, SdkControlServerTransport
+
+if TYPE_CHECKING:
+    from mcp.server import Server as McpServer
+    from mcp import JSONRPCMessage
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +55,11 @@ class SubprocessCLITransport(Transport):
         self._close_stdin_after_prompt = close_stdin_after_prompt
         self._task_group: anyio.abc.TaskGroup | None = None
         self._stderr_file: Any = None  # tempfile.NamedTemporaryFile
+        
+        # SDK MCP server support
+        self._sdk_mcp_servers: dict[str, "McpServer"] = {}
+        self._sdk_transports: dict[str, SdkControlClientTransport] = {}
+        self._mcp_request_futures: dict[str, asyncio.Future] = {}
 
     def _find_cli(self) -> str:
         """Find Claude Code CLI binary."""
@@ -131,13 +142,24 @@ class SubprocessCLITransport(Transport):
 
         if self._options.mcp_servers:
             if isinstance(self._options.mcp_servers, dict):
-                # Dict format: serialize to JSON
-                cmd.extend(
-                    [
-                        "--mcp-config",
-                        json.dumps({"mcpServers": self._options.mcp_servers}),
-                    ]
-                )
+                # Separate SDK and external MCP servers
+                external_servers = {}
+                for name, config in self._options.mcp_servers.items():
+                    if isinstance(config, dict) and config.get("type") == "sdk":
+                        # Store SDK servers for later setup
+                        self._sdk_mcp_servers[name] = config["instance"]
+                    else:
+                        # Keep external servers for CLI
+                        external_servers[name] = config
+                
+                # Only pass external servers to CLI
+                if external_servers:
+                    cmd.extend(
+                        [
+                            "--mcp-config",
+                            json.dumps({"mcpServers": external_servers}),
+                        ]
+                    )
             else:
                 # String or Path format: pass directly as file path or JSON string
                 cmd.extend(["--mcp-config", str(self._options.mcp_servers)])
@@ -210,6 +232,10 @@ class SubprocessCLITransport(Transport):
                 # String mode: close stdin immediately (backward compatible)
                 if self._process.stdin:
                     await self._process.stdin.aclose()
+            
+            # Set up SDK MCP servers if any
+            if self._sdk_mcp_servers:
+                await self._setup_sdk_mcp_servers()
 
         except FileNotFoundError as e:
             # Check if the error comes from the working directory or the CLI
@@ -222,7 +248,20 @@ class SubprocessCLITransport(Transport):
             raise CLIConnectionError(f"Failed to start Claude Code: {e}") from e
 
     async def disconnect(self) -> None:
-        """Terminate subprocess."""
+        """Terminate subprocess and clean up SDK servers."""
+        # Stop all SDK MCP servers
+        for server_instance in self._sdk_mcp_servers.values():
+            try:
+                await server_instance.stop()
+            except Exception:
+                pass  # Ignore errors during shutdown
+        
+        # Clear SDK server data
+        self._sdk_mcp_servers.clear()
+        self._sdk_transports.clear()
+        self._mcp_request_futures.clear()
+        
+        # Original disconnect logic
         if not self._process:
             return
 
@@ -341,7 +380,11 @@ class SubprocessCLITransport(Transport):
                         if data.get("type") == "control_response":
                             response = data.get("response", {})
                             request_id = response.get("request_id")
-                            if request_id:
+                            
+                            # Check if this is an MCP response
+                            if response.get("subtype") == "mcp_response":
+                                await self._handle_mcp_response(response)
+                            elif request_id:
                                 # Store the response for the pending request
                                 self._pending_control_responses[request_id] = response
                             continue
@@ -447,3 +490,115 @@ class SubprocessCLITransport(Transport):
             raise CLIConnectionError(f"Control request failed: {response.get('error')}")
 
         return response
+    
+    async def _setup_sdk_mcp_servers(self) -> None:
+        """Set up SDK MCP servers and their transports."""
+        for server_name, server_instance in self._sdk_mcp_servers.items():
+            # Create transport for this server
+            transport = SdkControlClientTransport(
+                server_name=server_name,
+                send_mcp_message=self._send_mcp_message
+            )
+            
+            # Store the transport
+            self._sdk_transports[server_name] = transport
+            
+            # Start the server with this transport
+            await server_instance.start(transport)
+    
+    async def _send_mcp_message(self, server_name: str, message: "JSONRPCMessage") -> asyncio.Future["JSONRPCMessage"]:
+        """Send an MCP message through control request and get response.
+        
+        Args:
+            server_name: Name of the SDK MCP server
+            message: The JSONRPC message to send
+            
+        Returns:
+            Future that will be resolved with the response
+        """
+        # Create a future for the response
+        future = asyncio.Future()
+        request_id = f"mcp_{self._request_counter}_{os.urandom(4).hex()}"
+        self._request_counter += 1
+        
+        # Store the future for when we get the response
+        self._mcp_request_futures[request_id] = future
+        
+        # Send control request with MCP message
+        control_request = {
+            "subtype": "mcp_request",
+            "server_name": server_name,
+            "request_id": request_id,
+            "message": message
+        }
+        
+        # Send the request asynchronously
+        asyncio.create_task(self._send_control_request(control_request))
+        
+        return future
+    
+    async def _handle_mcp_response(self, response: dict[str, Any]) -> None:
+        """Handle MCP response from control message.
+        
+        Args:
+            response: The control response containing MCP response
+        """
+        request_id = response.get("request_id")
+        if request_id and request_id in self._mcp_request_futures:
+            future = self._mcp_request_futures.pop(request_id)
+            
+            # Check for error
+            if response.get("error"):
+                future.set_exception(Exception(response["error"]))
+            else:
+                # Set the result with the MCP message
+                future.set_result(response.get("message"))
+    
+    async def disconnect(self) -> None:
+        """Terminate subprocess and clean up SDK servers."""
+        # Stop all SDK MCP servers
+        for server_instance in self._sdk_mcp_servers.values():
+            try:
+                await server_instance.stop()
+            except Exception:
+                pass  # Ignore errors during shutdown
+        
+        # Clear SDK server data
+        self._sdk_mcp_servers.clear()
+        self._sdk_transports.clear()
+        self._mcp_request_futures.clear()
+        
+        # Original disconnect logic
+        if not self._process:
+            return
+
+        # Cancel task group if it exists
+        if self._task_group:
+            self._task_group.cancel_scope.cancel()
+            await self._task_group.__aexit__(None, None, None)
+            self._task_group = None
+
+        if self._process.returncode is None:
+            try:
+                self._process.terminate()
+                with anyio.fail_after(5.0):
+                    await self._process.wait()
+            except TimeoutError:
+                self._process.kill()
+                await self._process.wait()
+            except ProcessLookupError:
+                pass
+
+        # Clean up temp file
+        if self._stderr_file:
+            try:
+                self._stderr_file.close()
+                Path(self._stderr_file.name).unlink()
+            except Exception:
+                pass
+            self._stderr_file = None
+
+        self._process = None
+        self._stdout_stream = None
+        self._stderr_stream = None
+        self._stdin_stream = None
