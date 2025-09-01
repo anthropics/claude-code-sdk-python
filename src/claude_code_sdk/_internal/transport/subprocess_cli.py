@@ -1,6 +1,5 @@
 """Subprocess transport implementation using Claude Code CLI."""
 
-import asyncio
 import json
 import logging
 import os
@@ -20,11 +19,9 @@ from ..._errors import CLIConnectionError, CLINotFoundError, ProcessError
 from ..._errors import CLIJSONDecodeError as SDKJSONDecodeError
 from ...types import ClaudeCodeOptions
 from . import Transport
-from .sdk_control import SdkControlClientTransport, SdkControlServerTransport
 
 if TYPE_CHECKING:
     from mcp.server import Server as McpServer
-    from mcp import JSONRPCMessage
 
 logger = logging.getLogger(__name__)
 
@@ -58,8 +55,6 @@ class SubprocessCLITransport(Transport):
         
         # SDK MCP server support
         self._sdk_mcp_servers: dict[str, "McpServer"] = {}
-        self._sdk_transports: dict[str, SdkControlClientTransport] = {}
-        self._mcp_request_futures: dict[str, asyncio.Future] = {}
 
     def _find_cli(self) -> str:
         """Find Claude Code CLI binary."""
@@ -382,11 +377,31 @@ class SubprocessCLITransport(Transport):
                             request_id = response.get("request_id")
                             
                             # Check if this is an MCP response
-                            if response.get("subtype") == "mcp_response":
-                                await self._handle_mcp_response(response)
-                            elif request_id:
+                            if request_id:
                                 # Store the response for the pending request
                                 self._pending_control_responses[request_id] = response
+                            continue
+                        
+                        # Handle control requests for SDK MCP servers
+                        if data.get("type") == "control_request":
+                            request = data.get("request", {})
+                            if request.get("subtype") == "mcp_request":
+                                # Handle SDK MCP server request
+                                server_name = request.get("server_name")
+                                mcp_message = request.get("message")
+                                response = await self._handle_sdk_mcp_request(server_name, mcp_message)
+                                
+                                # Send response back
+                                control_response = {
+                                    "type": "control_response",
+                                    "response": {
+                                        "subtype": "mcp_response",
+                                        "request_id": request.get("request_id"),
+                                        "message": response
+                                    }
+                                }
+                                if self._stdin_stream:
+                                    await self._stdin_stream.send(json.dumps(control_response) + "\n")
                             continue
 
                         try:
@@ -493,80 +508,83 @@ class SubprocessCLITransport(Transport):
     
     async def _setup_sdk_mcp_servers(self) -> None:
         """Set up SDK MCP servers and their transports."""
-        for server_name, server_instance in self._sdk_mcp_servers.items():
-            # Create transport for this server
-            transport = SdkControlClientTransport(
-                server_name=server_name,
-                send_mcp_message=self._send_mcp_message
-            )
-            
-            # Store the transport
-            self._sdk_transports[server_name] = transport
-            
-            # Start the server with this transport
-            await server_instance.start(transport)
+        # For Python MCP servers, we don't need to start them here
+        # They will be invoked on-demand when tools are called
+        # The server.run() method is for running a standalone server,
+        # but we're using the server programmatically through its handlers
+        pass
     
-    async def _send_mcp_message(self, server_name: str, message: "JSONRPCMessage") -> asyncio.Future["JSONRPCMessage"]:
-        """Send an MCP message through control request and get response.
+    async def _handle_sdk_mcp_request(self, server_name: str, message: dict) -> dict:
+        """Handle an MCP request for an SDK server.
         
         Args:
             server_name: Name of the SDK MCP server
-            message: The JSONRPC message to send
+            message: The JSONRPC message
             
         Returns:
-            Future that will be resolved with the response
+            The response message
         """
-        # Create a future for the response
-        future = asyncio.Future()
-        request_id = f"mcp_{self._request_counter}_{os.urandom(4).hex()}"
-        self._request_counter += 1
+        if server_name not in self._sdk_mcp_servers:
+            return {
+                "jsonrpc": "2.0",
+                "id": message.get("id"),
+                "error": {
+                    "code": -32601,
+                    "message": f"Server '{server_name}' not found"
+                }
+            }
         
-        # Store the future for when we get the response
-        self._mcp_request_futures[request_id] = future
+        server = self._sdk_mcp_servers[server_name]
+        method = message.get("method")
+        params = message.get("params", {})
         
-        # Send control request with MCP message
-        control_request = {
-            "subtype": "mcp_request",
-            "server_name": server_name,
-            "request_id": request_id,
-            "message": message
-        }
-        
-        # Send the request asynchronously
-        asyncio.create_task(self._send_control_request(control_request))
-        
-        return future
-    
-    async def _handle_mcp_response(self, response: dict[str, Any]) -> None:
-        """Handle MCP response from control message.
-        
-        Args:
-            response: The control response containing MCP response
-        """
-        request_id = response.get("request_id")
-        if request_id and request_id in self._mcp_request_futures:
-            future = self._mcp_request_futures.pop(request_id)
+        try:
+            # Route to appropriate handler based on method
+            if method == "tools/list":
+                # Get the list_tools handler and call it
+                handler = server.request_handlers.get("tools/list")
+                if handler:
+                    tools = await handler()
+                    return {
+                        "jsonrpc": "2.0",
+                        "id": message.get("id"),
+                        "result": {"tools": [t.model_dump() for t in tools]}
+                    }
+            elif method == "tools/call":
+                # Get the call_tool handler and call it
+                handler = server.request_handlers.get("tools/call")
+                if handler:
+                    result = await handler(params.get("name"), params.get("arguments", {}))
+                    return {
+                        "jsonrpc": "2.0",
+                        "id": message.get("id"),
+                        "result": result
+                    }
             
-            # Check for error
-            if response.get("error"):
-                future.set_exception(Exception(response["error"]))
-            else:
-                # Set the result with the MCP message
-                future.set_result(response.get("message"))
+            # Method not found
+            return {
+                "jsonrpc": "2.0",
+                "id": message.get("id"),
+                "error": {
+                    "code": -32601,
+                    "message": f"Method '{method}' not found"
+                }
+            }
+        except Exception as e:
+            return {
+                "jsonrpc": "2.0",
+                "id": message.get("id"),
+                "error": {
+                    "code": -32603,
+                    "message": str(e)
+                }
+            }
+    
     
     async def disconnect(self) -> None:
         """Terminate subprocess and clean up SDK servers."""
-        # Stop all SDK MCP servers
-        for server_instance in self._sdk_mcp_servers.values():
-            try:
-                await server_instance.stop()
-            except Exception:
-                pass  # Ignore errors during shutdown
-        
         # Clear SDK server data
         self._sdk_mcp_servers.clear()
-        self._sdk_transports.clear()
-        self._mcp_request_futures.clear()
         
         # Original disconnect logic
         if not self._process:

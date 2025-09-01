@@ -174,28 +174,70 @@ def create_sdk_mcp_server(
         - ClaudeCodeOptions: Configuration for using servers with query()
     """
     from mcp.server import Server
+    from mcp import Tool, CallToolRequest
     
     # Create MCP server instance
-    server = Server(name)
+    server = Server(name, version=version)
     
     # Register tools if provided
     if tools:
-        for tool_def in tools:
-            # Convert input_schema to appropriate format
-            if isinstance(tool_def.input_schema, dict):
-                schema = tool_def.input_schema
-            else:
-                # For TypedDict or other types, we need to convert to JSON schema
-                # This is a simplified version - real implementation may need more sophisticated handling
-                schema = {"type": "object", "properties": {}}
+        # Store tools for access in handlers
+        tool_map = {tool_def.name: tool_def for tool_def in tools}
+        
+        # Register list_tools handler to expose available tools
+        @server.list_tools()
+        async def list_tools() -> list[Tool]:
+            """Return the list of available tools."""
+            tool_list = []
+            for tool_def in tools:
+                # Convert input_schema to JSON Schema format
+                if isinstance(tool_def.input_schema, dict):
+                    # Check if it's already a JSON schema
+                    if "type" in tool_def.input_schema and "properties" in tool_def.input_schema:
+                        schema = tool_def.input_schema
+                    else:
+                        # Simple dict mapping names to types - convert to JSON schema
+                        properties = {}
+                        for param_name, param_type in tool_def.input_schema.items():
+                            if param_type == str:
+                                properties[param_name] = {"type": "string"}
+                            elif param_type == int:
+                                properties[param_name] = {"type": "integer"}
+                            elif param_type == float:
+                                properties[param_name] = {"type": "number"}
+                            elif param_type == bool:
+                                properties[param_name] = {"type": "boolean"}
+                            else:
+                                properties[param_name] = {"type": "string"}  # Default
+                        schema = {
+                            "type": "object",
+                            "properties": properties,
+                            "required": list(properties.keys())
+                        }
+                else:
+                    # For TypedDict or other types, create basic schema
+                    schema = {"type": "object", "properties": {}}
+                
+                tool_list.append(Tool(
+                    name=tool_def.name,
+                    description=tool_def.description,
+                    inputSchema=schema
+                ))
+            return tool_list
+        
+        # Register call_tool handler to execute tools
+        @server.call_tool()
+        async def call_tool(name: str, arguments: dict) -> Any:
+            """Execute a tool by name with given arguments."""
+            if name not in tool_map:
+                raise ValueError(f"Tool '{name}' not found")
             
-            # Register the tool with the server
-            server.add_tool(
-                name=tool_def.name,
-                description=tool_def.description,
-                input_schema=schema,
-                handler=tool_def.handler
-            )
+            tool_def = tool_map[name]
+            # Call the tool's handler with arguments
+            result = await tool_def.handler(arguments)
+            
+            # Return the result in MCP format
+            return result
     
     # Return SDK server configuration
     return McpSdkServerConfig(
