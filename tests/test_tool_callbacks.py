@@ -4,10 +4,12 @@ import pytest
 
 from claude_code_sdk import (
     ClaudeCodeOptions,
-    HookContext,
-    HookMatcher,
     PermissionResultAllow,
     PermissionResultDeny,
+)
+from claude_code_sdk.types import (
+    HookContext,
+    HookMatcher,
     ToolPermissionContext,
 )
 from claude_code_sdk._internal.query import Query
