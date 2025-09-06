@@ -99,18 +99,20 @@ HookEvent = (
     | Literal["PreCompact"]
 )
 
+
 # See https://docs.anthropic.com/en/docs/claude-code/hooks#advanced%3A-json-output
 # for documentation of the output types. Currently, "continue", "stopReason",
 # and "suppressOutput" are not supported in the Python SDK.
 class HookJSONOutput(TypedDict):
     # Whether to block the action related to the hook.
-    decision: NotRequired[Literal['block']]
+    decision: NotRequired[Literal["block"]]
     # Optionally add a system message that is not visible to Claude but saved in
     # the chat transcript.
     systemMessage: NotRequired[str]
     # See each hook's individual "Decision Control" section in the documentation
     # for guidance.
     hookSpecificOutput: NotRequired[Any]
+
 
 @dataclass
 class HookContext:
@@ -262,6 +264,7 @@ class ResultMessage:
 
 
 Message = UserMessage | AssistantMessage | SystemMessage | ResultMessage
+
 
 @dataclass
 class ClaudeCodeOptions:
