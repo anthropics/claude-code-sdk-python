@@ -70,4 +70,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    anyio.run(main())
+    anyio.run(main)
