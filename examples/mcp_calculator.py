@@ -198,17 +198,14 @@ async def main():
         "Calculate (12 + 8) * 3 - 10"  # Complex calculation
     ]
 
-    # Use the streaming client
-    async with ClaudeSDKClient(options=options) as client:
-        for prompt in prompts:
-            print(f"\n{'='*50}")
-            print(f"Prompt: {prompt}")
-            print(f"{'='*50}")
-            
-            # Send the query
+    for prompt in prompts:
+        print(f"\n{'='*50}")
+        print(f"Prompt: {prompt}")
+        print(f"{'='*50}")
+        
+        async with ClaudeSDKClient(options=options) as client:
             await client.query(prompt)
             
-            # Receive and display the response
             async for message in client.receive_response():
                 display_message(message)
 
