@@ -305,3 +305,68 @@ class TestSubprocessBuffering:
             assert messages[2]["subtype"] == "end"
 
         anyio.run(_test)
+
+    def test_anthropic_log_filtering(self) -> None:
+        """Test that ANTHROPIC_LOG output is filtered out from JSON parsing.
+        
+        When ANTHROPIC_LOG is set, the CLI outputs log messages to stdout
+        mixed with JSON messages. This test verifies that log lines are
+        properly filtered out and don't interfere with JSON parsing.
+        """
+
+        async def _test() -> None:
+            json_obj1 = {"type": "system", "subtype": "init", "session_id": "test123"}
+            json_obj2 = {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Hello"}]}}
+            json_obj3 = {"type": "result", "subtype": "success", "is_error": False}
+
+            # Simulate output with ANTHROPIC_LOG=debug mixed with valid JSON
+            mixed_output = [
+                json.dumps(json_obj1),
+                "[log_abc123] sending request {",
+                "  method: 'post',",
+                "  url: 'https://api.anthropic.com/v1/messages',",
+                "  options: {",
+                "    headers: {",
+                "      'authorization': '***'",
+                "    }",
+                "  }",
+                "}",
+                "[log_abc123] response start {",
+                "  status: 200,",
+                "  headers: { 'content-type': 'application/json' }",
+                "}",
+                "response 200 https://api.anthropic.com/v1/messages Headers {",
+                "  'content-type': 'application/json'",
+                "}",
+                json.dumps(json_obj2),
+                "[log_def456] response parsed {",
+                "  body: { data: 'response' }",
+                "}",
+                json.dumps(json_obj3),
+            ]
+
+            buffered_output = "\n".join(mixed_output)
+
+            transport = SubprocessCLITransport(
+                prompt="test", options=ClaudeCodeOptions(), cli_path="/usr/bin/claude"
+            )
+
+            mock_process = MagicMock()
+            mock_process.returncode = None
+            mock_process.wait = AsyncMock(return_value=None)
+            transport._process = mock_process
+            transport._stdout_stream = MockTextReceiveStream([buffered_output])
+
+            messages: list[Any] = []
+            async for msg in transport.read_messages():
+                messages.append(msg)
+
+            # Should only get the 3 valid JSON messages, log lines should be filtered out
+            assert len(messages) == 3
+            
+            # Verify the correct messages were parsed
+            assert messages[0]["type"] == "system"
+            assert messages[1]["type"] == "assistant"
+            assert messages[2]["type"] == "result"
+
+        anyio.run(_test)

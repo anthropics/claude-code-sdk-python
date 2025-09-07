@@ -318,6 +318,12 @@ class SubprocessCLITransport(Transport):
                     if not json_line:
                         continue
 
+                    # Filter out non-JSON lines when ANTHROPIC_LOG is set
+                    # Only process lines that start with { (valid JSON objects)
+                    if not json_line.startswith('{'):
+                        # Skip non-JSON lines (including ANTHROPIC_LOG output)
+                        continue
+
                     # Keep accumulating partial JSON until we can parse it
                     json_buffer += json_line
 
