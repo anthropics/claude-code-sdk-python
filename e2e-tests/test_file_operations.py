@@ -47,7 +47,7 @@ async def test_file_reading():
     
     with tempfile.TemporaryDirectory() as tmpdir:
         test_file = Path(tmpdir) / "input.txt"
-        test_content = "This is a test file for Claude Code SDK e2e testing."
+        test_content = "Hello world from Claude Code SDK e2e testing."
         test_file.write_text(test_content)
         
         options = ClaudeCodeOptions(
@@ -56,7 +56,7 @@ async def test_file_reading():
             max_turns=1,
         )
         
-        prompt = f"Read the file at {test_file} and tell me the first word in the file"
+        prompt = f"Read the file at {test_file} and tell me what it says"
         
         found_response = False
         async for message in query(prompt=prompt, options=options):
@@ -64,12 +64,12 @@ async def test_file_reading():
                 for block in message.content:
                     if isinstance(block, TextBlock):
                         print(f"Claude: {block.text[:100]}...")
-                        # Check if Claude identified "This" as the first word
-                        if "This" in block.text or "this" in block.text.lower():
+                        # Check if Claude read the file content
+                        if "hello" in block.text.lower() or "claude code sdk" in block.text.lower():
                             found_response = True
         
         if not found_response:
-            raise Exception("Claude did not identify the first word correctly")
+            raise Exception("Claude did not read the file content correctly")
         
         print("✅ File reading test passed")
 
