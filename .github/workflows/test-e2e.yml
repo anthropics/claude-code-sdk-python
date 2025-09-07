@@ -1,4 +1,4 @@
-name: Claude Code Integration Test
+name: Claude Code E2E Test
 
 on:
   pull_request:
@@ -25,9 +25,7 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Verify Claude Code installation
-        run: |
-          export PATH="$HOME/.local/bin:$PATH"
-          claude -v
+        run: claude -v
 
       - name: Install Python dependencies
         run: |
@@ -35,15 +33,11 @@ jobs:
           pip install -e .
 
       - name: Run quickstart example
-        run: |
-          export PATH="$HOME/.local/bin:$PATH"
-          python examples/quick_start.py
+        run: python examples/quick_start.py
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Run streaming mode examples
-        run: |
-          export PATH="$HOME/.local/bin:$PATH"
-          timeout 120 python examples/streaming_mode.py all
+        run: timeout 120 python examples/streaming_mode.py all
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
