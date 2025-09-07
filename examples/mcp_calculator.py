@@ -15,7 +15,6 @@ from typing import Any
 from claude_code_sdk import (
     ClaudeCodeOptions,
     create_sdk_mcp_server,
-    query,
     tool,
 )
 
@@ -129,8 +128,45 @@ async def power(args: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def display_message(msg):
+    """Display message content in a clean format."""
+    from claude_code_sdk import (
+        AssistantMessage,
+        ResultMessage,
+        SystemMessage,
+        TextBlock,
+        ToolResultBlock,
+        ToolUseBlock,
+        UserMessage,
+    )
+    
+    if isinstance(msg, UserMessage):
+        for block in msg.content:
+            if isinstance(block, TextBlock):
+                print(f"User: {block.text}")
+            elif isinstance(block, ToolResultBlock):
+                print(f"Tool Result: {block.content[:100] if block.content else 'None'}...")
+    elif isinstance(msg, AssistantMessage):
+        for block in msg.content:
+            if isinstance(block, TextBlock):
+                print(f"Claude: {block.text}")
+            elif isinstance(block, ToolUseBlock):
+                print(f"Using tool: {block.name}")
+                # Show tool inputs for calculator
+                if block.input:
+                    print(f"  Input: {block.input}")
+    elif isinstance(msg, SystemMessage):
+        # Ignore system messages
+        pass
+    elif isinstance(msg, ResultMessage):
+        print("Result ended")
+        if msg.total_cost_usd:
+            print(f"Cost: ${msg.total_cost_usd:.6f}")
+
+
 async def main():
-    """Run example calculations using the SDK MCP server."""
+    """Run example calculations using the SDK MCP server with streaming client."""
+    from claude_code_sdk import ClaudeSDKClient
 
     # Create the calculator server with all tools
     calculator = create_sdk_mcp_server(
@@ -149,12 +185,12 @@ async def main():
     # Configure Claude to use the calculator server
     options = ClaudeCodeOptions(
         mcp_servers={"calc": calculator},
-        # Allow Claude to use calculator tools without permission prompts
-        permission_mode="bypassPermissions"
+        permission_mode="acceptEdits"
     )
 
     # Example prompts to demonstrate calculator usage
     prompts = [
+        "List your tools",
         "Calculate 15 + 27",
         "What is 100 divided by 7?",
         "Calculate the square root of 144",
@@ -162,19 +198,19 @@ async def main():
         "Calculate (12 + 8) * 3 - 10"  # Complex calculation
     ]
 
-    for prompt in prompts:
-        print(f"\n{'='*50}")
-        print(f"Prompt: {prompt}")
-        print(f"{'='*50}")
-
-        async for message in query(prompt=prompt, options=options):
-            # Print the message content
-            if hasattr(message, 'content'):
-                for content_block in message.content:
-                    if hasattr(content_block, 'text'):
-                        print(f"Claude: {content_block.text}")
-                    elif hasattr(content_block, 'name'):
-                        print(f"Using tool: {content_block.name}")
+    # Use the streaming client
+    async with ClaudeSDKClient(options=options) as client:
+        for prompt in prompts:
+            print(f"\n{'='*50}")
+            print(f"Prompt: {prompt}")
+            print(f"{'='*50}")
+            
+            # Send the query
+            await client.query(prompt)
+            
+            # Receive and display the response
+            async for message in client.receive_response():
+                display_message(message)
 
 
 if __name__ == "__main__":
