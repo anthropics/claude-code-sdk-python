@@ -37,21 +37,13 @@ jobs:
       - name: Run quickstart example
         run: |
           export PATH="$HOME/.local/bin:$PATH"
-          cd examples
-          python quick_start.py
+          python examples/quick_start.py
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
-      - name: Run basic integration tests
+      - name: Run streaming mode examples
         run: |
           export PATH="$HOME/.local/bin:$PATH"
-          python e2e-tests/test_basic_integration.py
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
-      - name: Run file operation tests
-        run: |
-          export PATH="$HOME/.local/bin:$PATH"
-          python e2e-tests/test_file_operations.py
+          timeout 120 python examples/streaming_mode.py all
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
