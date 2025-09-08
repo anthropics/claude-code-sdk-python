@@ -53,14 +53,14 @@ class InternalClient:
                     "can_use_tool callback requires streaming mode. "
                     "Please provide prompt as an AsyncIterable instead of a string."
                 )
-            
+
             # canUseTool and permission_prompt_tool_name are mutually exclusive
             if options.permission_prompt_tool_name:
                 raise ValueError(
                     "can_use_tool callback cannot be used with permission_prompt_tool_name. "
                     "Please use one or the other."
                 )
-            
+
             # Automatically set permission_prompt_tool_name to "stdio" for control protocol
             configured_options = replace(options, permission_prompt_tool_name="stdio")
 
