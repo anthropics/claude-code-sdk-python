@@ -126,7 +126,7 @@ class SubprocessCLITransport(Transport):
         if self._options.mcp_servers:
             if isinstance(self._options.mcp_servers, dict):
                 # Process all servers, stripping instance field from SDK servers
-                servers_for_cli = {}
+                servers_for_cli: dict[str, Any] = {}
                 for name, config in self._options.mcp_servers.items():
                     if isinstance(config, dict) and config.get("type") == "sdk":
                         # For SDK servers, pass everything except the instance field
