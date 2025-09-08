@@ -52,5 +52,6 @@ async def test_permission_callback_gets_called():
         async for message in client.receive_response():
             pass  # Just consume messages
     
+    print('yolo',callback_invocations)
     # Verify callback was invoked
     assert "mcp__test__test_tool" in callback_invocations, "can_use_tool callback should have been invoked"
