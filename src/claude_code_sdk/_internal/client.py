@@ -68,14 +68,18 @@ class InternalClient:
         if transport is not None:
             chosen_transport = transport
         else:
-            chosen_transport = SubprocessCLITransport(prompt=prompt, options=configured_options)
+            chosen_transport = SubprocessCLITransport(
+                prompt=prompt, options=configured_options
+            )
 
         # Connect transport
         await chosen_transport.connect()
 
         # Extract SDK MCP servers from configured options
         sdk_mcp_servers = {}
-        if configured_options.mcp_servers and isinstance(configured_options.mcp_servers, dict):
+        if configured_options.mcp_servers and isinstance(
+            configured_options.mcp_servers, dict
+        ):
             for name, config in configured_options.mcp_servers.items():
                 if isinstance(config, dict) and config.get("type") == "sdk":
                     sdk_mcp_servers[name] = config["instance"]  # type: ignore[typeddict-item]
