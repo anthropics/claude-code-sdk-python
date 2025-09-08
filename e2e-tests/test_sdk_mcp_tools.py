@@ -19,92 +19,98 @@ from claude_code_sdk import (
 from claude_code_sdk.types import ToolResultBlock, ToolUseBlock
 
 
-# Simple test tools
-@tool("echo", "Echo back the input text", {"text": str})
-async def echo_tool(args: dict[str, Any]) -> dict[str, Any]:
-    """Echo back whatever text is provided."""
-    return {"content": [{"type": "text", "text": f"Echo: {args['text']}"}]}
-
-
-@tool("greet", "Greet a person by name", {"name": str})
-async def greet_tool(args: dict[str, Any]) -> dict[str, Any]:
-    """Greet someone by name."""
-    return {"content": [{"type": "text", "text": f"Hello, {args['name']}!"}]}
-
-
-@pytest.fixture
-def sdk_mcp_server():
-    """Create a simple SDK MCP server with test tools."""
-    return create_sdk_mcp_server(
-        name="test-server",
-        version="1.0.0",
-        tools=[echo_tool, greet_tool],
-    )
-
-
 @pytest.mark.e2e
 @pytest.mark.asyncio
-async def test_sdk_mcp_tool_execution(sdk_mcp_server):
+async def test_sdk_mcp_tool_execution():
     """Test that SDK MCP tools can be called and executed with allowed_tools."""
-    options = ClaudeCodeOptions(
-        mcp_servers={"test": sdk_mcp_server},
-        allowed_tools=["mcp__test__echo"],
+    executions = []
+    
+    @tool("echo", "Echo back the input text", {"text": str})
+    async def echo_tool(args: dict[str, Any]) -> dict[str, Any]:
+        """Echo back whatever text is provided."""
+        executions.append("echo")
+        return {"content": [{"type": "text", "text": f"Echo: {args['text']}"}]}
+    
+    server = create_sdk_mcp_server(
+        name="test",
+        version="1.0.0",
+        tools=[echo_tool],
     )
     
-    echo_tool_called = False
-    echo_result_received = False
+    options = ClaudeCodeOptions(
+        mcp_servers={"test": server},
+        allowed_tools=["mcp__test__echo"],
+    )
     
     async with ClaudeSDKClient(options=options) as client:
         await client.query("Call the mcp__test__echo tool with any text")
         
         async for message in client.receive_response():
-            if isinstance(message, AssistantMessage):
-                for block in message.content:
-                    if isinstance(block, ToolUseBlock) and block.name == "mcp__test__echo":
-                        echo_tool_called = True
-            elif isinstance(message, UserMessage):
-                for block in message.content:
-                    if isinstance(block, ToolResultBlock):
-                        echo_result_received = True
+            pass  # Just consume messages
     
-    assert echo_tool_called, "mcp__test__echo tool was not called"
-    assert echo_result_received, "Tool result was not received"
+    # Check if the actual Python function was called
+    assert "echo" in executions, "Echo tool function was not executed"
 
 
 @pytest.mark.e2e
 @pytest.mark.asyncio
-async def test_sdk_mcp_permission_enforcement(sdk_mcp_server):
+async def test_sdk_mcp_permission_enforcement():
     """Test that disallowed_tools prevents SDK MCP tool execution."""
+    executions = []
+    
+    @tool("echo", "Echo back the input text", {"text": str})
+    async def echo_tool(args: dict[str, Any]) -> dict[str, Any]:
+        """Echo back whatever text is provided."""
+        executions.append("echo")
+        return {"content": [{"type": "text", "text": f"Echo: {args['text']}"}]}
+    
+    @tool("greet", "Greet a person by name", {"name": str})
+    async def greet_tool(args: dict[str, Any]) -> dict[str, Any]:
+        """Greet someone by name."""
+        executions.append("greet")
+        return {"content": [{"type": "text", "text": f"Hello, {args['name']}!"}]}
+    
+    server = create_sdk_mcp_server(
+        name="test",
+        version="1.0.0",
+        tools=[echo_tool, greet_tool],
+    )
+    
     options = ClaudeCodeOptions(
-        mcp_servers={"test": sdk_mcp_server},
+        mcp_servers={"test": server},
         disallowed_tools=["mcp__test__echo"],  # Block echo tool
         allowed_tools=["mcp__test__greet"],     # But allow greet
     )
-    
-    echo_executed = False
-    greet_executed = False
     
     async with ClaudeSDKClient(options=options) as client:
         await client.query("Use the echo tool to echo 'test' and use greet tool to greet 'Alice'")
         
         async for message in client.receive_response():
-            if isinstance(message, UserMessage):
-                for block in message.content:
-                    if isinstance(block, ToolResultBlock):
-                        print(block)
-                        if "mcp__test__echo" in str(block):
-                            echo_executed = True
-                        elif "mcp__test__greet" in str(block):
-                            greet_executed = True
+            pass  # Just consume messages
     
-    assert not echo_executed, "Disallowed echo tool was executed"
-    assert greet_executed, "Allowed greet tool was not executed"
+    # Check actual function executions
+    assert "echo" not in executions, "Disallowed echo tool was executed"
+    assert "greet" in executions, "Allowed greet tool was not executed"
 
 
 @pytest.mark.e2e
 @pytest.mark.asyncio
 async def test_sdk_mcp_multiple_tools():
     """Test that multiple SDK MCP tools can be called in sequence."""
+    executions = []
+    
+    @tool("echo", "Echo back the input text", {"text": str})
+    async def echo_tool(args: dict[str, Any]) -> dict[str, Any]:
+        """Echo back whatever text is provided."""
+        executions.append("echo")
+        return {"content": [{"type": "text", "text": f"Echo: {args['text']}"}]}
+    
+    @tool("greet", "Greet a person by name", {"name": str})
+    async def greet_tool(args: dict[str, Any]) -> dict[str, Any]:
+        """Greet someone by name."""
+        executions.append("greet")
+        return {"content": [{"type": "text", "text": f"Hello, {args['name']}!"}]}
+    
     server = create_sdk_mcp_server(
         name="multi",
         version="1.0.0",
@@ -116,49 +122,44 @@ async def test_sdk_mcp_multiple_tools():
         allowed_tools=["mcp__multi__echo", "mcp__multi__greet"],
     )
     
-    tools_called = []
-    
     async with ClaudeSDKClient(options=options) as client:
-        await client.query("First echo 'test' then greet 'Bob'")
+        await client.query("Call mcp__multi__echo with text='test' and mcp__multi__greet with name='Bob'")
         
         async for message in client.receive_response():
-            if isinstance(message, AssistantMessage):
-                for block in message.content:
-                    if isinstance(block, ToolUseBlock):
-                        tools_called.append(block.name)
+            pass  # Just consume messages
     
-    # At least one tool should be called (may be 1 or 2 depending on Claude's approach)
-    assert len(tools_called) > 0, "No SDK MCP tools were called"
-    # Verify they are SDK MCP tools
-    for tool_name in tools_called:
-        assert tool_name.startswith("mcp__multi__"), f"Unexpected tool: {tool_name}"
+    # Both tools should have been executed
+    assert "echo" in executions, "Echo tool was not executed"
+    assert "greet" in executions, "Greet tool was not executed"
 
 
 @pytest.mark.e2e
 @pytest.mark.asyncio
 async def test_sdk_mcp_without_permissions():
-    """Test that SDK MCP tools are NOT executed without explicit permissions."""
+    """Test SDK MCP tool behavior without explicit allowed_tools."""
+    executions = []
+    
+    @tool("echo", "Echo back the input text", {"text": str})
+    async def echo_tool(args: dict[str, Any]) -> dict[str, Any]:
+        """Echo back whatever text is provided."""
+        executions.append("echo")
+        return {"content": [{"type": "text", "text": f"Echo: {args['text']}"}]}
+    
     server = create_sdk_mcp_server(
         name="noperm",
         version="1.0.0",
         tools=[echo_tool],
     )
     
-    # No allowed_tools specified - tools should be blocked
+    # No allowed_tools specified
     options = ClaudeCodeOptions(
         mcp_servers={"noperm": server},
     )
-    
-    tool_result_received = False
     
     async with ClaudeSDKClient(options=options) as client:
         await client.query("Call the mcp__noperm__echo tool")
         
         async for message in client.receive_response():
-            if isinstance(message, UserMessage):
-                for block in message.content:
-                    if isinstance(block, ToolResultBlock):
-                        tool_result_received = True
+            pass  # Just consume messages
     
-    # SDK MCP tools should NOT execute without explicit allowed_tools
-    assert not tool_result_received, "SDK MCP tool was executed without permissions (should be blocked)"
+    assert "echo" not in executions, "SDK MCP tool was executed"
