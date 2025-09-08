@@ -1,13 +1,13 @@
-name: Claude Code E2E Test
+name: Test Examples
 
 on:
   pull_request:
   push:
     branches:
-      - 'main'
+      - "main"
 
 jobs:
-  integration-test:
+  test-examples:
     runs-on: ubuntu-latest
     strategy:
       matrix:
