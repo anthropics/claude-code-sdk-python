@@ -375,7 +375,7 @@ class Query:
                         }
                     },
                 }
-            
+
             elif method == "tools/list":
                 request = ListToolsRequest(method=method)
                 handler = server.request_handlers.get(ListToolsRequest)
@@ -442,7 +442,7 @@ class Query:
                     "jsonrpc": "2.0",
                     "result": {}
                 }
-            
+
             # Add more methods here as MCP SDK adds them (resources, prompts, etc.)
             # This is the limitation Ashwin pointed out - we have to manually update
 
