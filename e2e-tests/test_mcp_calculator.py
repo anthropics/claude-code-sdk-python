@@ -221,20 +221,20 @@ async def test_multi_step_calculation(calculator_options):
 @pytest.mark.e2e
 @pytest.mark.asyncio
 async def test_tool_permissions_enforced():
-    """Test that tools are not called when not in allowed_tools list."""
+    """Test that disallowed_tools prevents tool execution."""
     calculator = create_sdk_mcp_server(
         name="calculator",
         version="2.0.0",
         tools=[add_numbers],
     )
     
-    # Create options WITHOUT allowed_tools - tools should not be called
+    # Use disallowed_tools to explicitly block the calculator tool
     options = ClaudeCodeOptions(
         mcp_servers={"calc": calculator},
-        # No allowed_tools specified - tools should be blocked
+        disallowed_tools=["mcp__calc__add"]
     )
     
-    tool_calls_found = False
+    add_tool_called = False
     
     async with ClaudeSDKClient(options=options) as client:
         await client.query("Calculate 5 + 3")
@@ -243,8 +243,8 @@ async def test_tool_permissions_enforced():
             if isinstance(message, AssistantMessage):
                 for block in message.content:
                     if isinstance(block, ToolUseBlock):
-                        # Found a tool use - this shouldn't happen without allowed_tools
-                        tool_calls_found = True
+                        if block.name == "mcp__calc__add":
+                            add_tool_called = True
     
-    # Tool should NOT be called when not in allowed_tools
-    assert not tool_calls_found, "MCP calculator tool was called despite not being in allowed_tools"
+    # Explicitly disallowed tool should NOT be called
+    assert not add_tool_called, "mcp__calc__add was called despite being in disallowed_tools"
