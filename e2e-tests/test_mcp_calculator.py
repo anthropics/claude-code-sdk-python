@@ -241,6 +241,7 @@ async def test_tool_permissions_enforced():
         
         async for message in client.receive_response():
             if isinstance(message, AssistantMessage):
+                print(message)
                 for block in message.content:
                     if isinstance(block, ToolUseBlock):
                         if block.name == "mcp__calc__add":
