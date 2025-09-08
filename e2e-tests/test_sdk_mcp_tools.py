@@ -91,6 +91,7 @@ async def test_sdk_mcp_permission_enforcement(sdk_mcp_server):
             if isinstance(message, UserMessage):
                 for block in message.content:
                     if isinstance(block, ToolResultBlock):
+                        print(block)
                         if "mcp__test__echo" in str(block):
                             echo_executed = True
                         elif "mcp__test__greet" in str(block):
