@@ -182,10 +182,18 @@ async def main():
         ]
     )
 
-    # Configure Claude to use the calculator server
+    # Configure Claude to use the calculator server with allowed tools
+    # Pre-approve all calculator MCP tools so they can be used without permission prompts
     options = ClaudeCodeOptions(
         mcp_servers={"calc": calculator},
-        permission_mode="acceptEdits"
+        allowed_tools=[
+            "mcp__calc__add",
+            "mcp__calc__subtract", 
+            "mcp__calc__multiply",
+            "mcp__calc__divide",
+            "mcp__calc__sqrt",
+            "mcp__calc__power"
+        ]
     )
 
     # Example prompts to demonstrate calculator usage

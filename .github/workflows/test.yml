@@ -35,3 +35,28 @@ jobs:
       with:
         file: ./coverage.xml
         fail_ci_if_error: false
+  
+  e2e-test:
+    runs-on: ubuntu-latest
+    # Only run e2e tests on main branch pushes to avoid API costs on PRs
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test  # Run after unit tests pass
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'  # Use single Python version for e2e tests
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+    
+    - name: Run e2e tests
+      env:
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      run: |
+        python -m pytest e2e-tests/ -v -m e2e
