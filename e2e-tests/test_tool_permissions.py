@@ -20,10 +20,12 @@ from claude_code_sdk import (
 async def test_permission_callback_gets_called():
     """Test that can_use_tool callback gets invoked."""
     callback_invocations = []
+    tool_executions = []
     
     @tool("test_tool", "A test tool", {"data": str})
     async def test_tool_func(args: dict[str, Any]) -> dict[str, Any]:
         """Test tool."""
+        tool_executions.append("executed")
         return {"content": [{"type": "text", "text": f"Executed with: {args['data']}"}]}
     
     async def permission_callback(
@@ -32,6 +34,7 @@ async def test_permission_callback_gets_called():
         context: ToolPermissionContext
     ) -> PermissionResultAllow | PermissionResultDeny:
         """Track callback invocation."""
+        print(f"Permission callback called for: {tool_name}, input: {input_data}")
         callback_invocations.append(tool_name)
         return PermissionResultAllow()
     
@@ -47,11 +50,13 @@ async def test_permission_callback_gets_called():
     )
     
     async with ClaudeSDKClient(options=options) as client:
-        await client.query("Call mcp__test__test_tool with any data")
+        await client.query("Use the mcp__test__test_tool with data='hello'")
         
         async for message in client.receive_response():
+            print(f"Got message: {message}")
             pass  # Just consume messages
     
-    print('yolo',callback_invocations)
+    print(f'Callback invocations: {callback_invocations}')
+    print(f'Tool executions: {tool_executions}')
     # Verify callback was invoked
     assert "mcp__test__test_tool" in callback_invocations, "can_use_tool callback should have been invoked"
