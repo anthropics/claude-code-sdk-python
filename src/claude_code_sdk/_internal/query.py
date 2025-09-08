@@ -372,7 +372,7 @@ class Query:
                         "serverInfo": {
                             "name": server.name,
                             "version": server.version or "1.0.0",
-                        }
+                        },
                     },
                 }
 
@@ -388,7 +388,7 @@ class Query:
                             "description": tool.description,
                             "inputSchema": (
                                 tool.inputSchema.model_dump()
-                                if hasattr(tool.inputSchema, 'model_dump')
+                                if hasattr(tool.inputSchema, "model_dump")
                                 else tool.inputSchema
                             )
                             if tool.inputSchema
@@ -438,10 +438,7 @@ class Query:
 
             elif method == "notifications/initialized":
                 # Handle initialized notification - just acknowledge it
-                return {
-                    "jsonrpc": "2.0",
-                    "result": {}
-                }
+                return {"jsonrpc": "2.0", "result": {}}
 
             # Add more methods here as MCP SDK adds them (resources, prompts, etc.)
             # This is the limitation Ashwin pointed out - we have to manually update
