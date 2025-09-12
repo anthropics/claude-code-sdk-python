@@ -28,7 +28,7 @@ anyio.run(main)
 
 ## Basic Usage: query()
 
-`query()` is an async function for querying Claude Code. It returns an `AsyncIterator` of response messages. See [src/claude_code_sdk/client.py](src/claude_code_sdk/client.py).
+`query()` is an async function for querying Claude Code. It returns an `AsyncIterator` of response messages. See [src/claude_code_sdk/query.py](src/claude_code_sdk/query.py).
 
 ```python
 from claude_code_sdk import query, ClaudeCodeOptions, AssistantMessage, TextBlock
@@ -269,7 +269,7 @@ See the [Claude Code documentation](https://docs.anthropic.com/en/docs/claude-co
 
 See [examples/quick_start.py](examples/quick_start.py) for a complete working example.
 
-See [examples/streaming_mode.py](examples/streaming_mode.py) for comprehensive examples involving `ClaudeSDKClient`.
+See [examples/streaming_mode.py](examples/streaming_mode.py) for comprehensive examples involving `ClaudeSDKClient`. You can even run interactive examples in IPython from [examples/streaming_mode_ipython.py](examples/streaming_mode_ipython.py).
 
 ## License
 
