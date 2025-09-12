@@ -298,6 +298,8 @@ class ClaudeCodeOptions:
     # Hook configurations
     hooks: dict[HookEvent, list[HookMatcher]] | None = None
 
+    user: str | None = None
+
 
 # SDK Control Protocol
 class SDKControlInterruptRequest(TypedDict):
@@ -365,3 +367,4 @@ class ControlErrorResponse(TypedDict):
 class SDKControlResponse(TypedDict):
     type: Literal["control_response"]
     response: ControlResponse | ControlErrorResponse
+
