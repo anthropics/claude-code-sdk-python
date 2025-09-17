@@ -149,7 +149,10 @@ def parse_message(data: dict[str, Any]) -> Message:
         case "stream_event":
             try:
                 return StreamEvent(
+                    uuid=data["uuid"],
+                    session_id=data["session_id"],
                     event=data["event"],
+                    parent_tool_use_id=data.get("parent_tool_use_id"),
                 )
             except KeyError as e:
                 raise MessageParseError(

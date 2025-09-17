@@ -267,7 +267,10 @@ class ResultMessage:
 class StreamEvent:
     """Stream event for partial message updates during streaming."""
 
+    uuid: str
+    session_id: str
     event: dict[str, Any]  # The raw Anthropic API stream event
+    parent_tool_use_id: str | None = None
 
 
 Message = UserMessage | AssistantMessage | SystemMessage | ResultMessage | StreamEvent
