@@ -48,3 +48,5 @@ htmlcov/
 .dmypy.json
 dmypy.json
 .pyre/
+
+.mcp.json
