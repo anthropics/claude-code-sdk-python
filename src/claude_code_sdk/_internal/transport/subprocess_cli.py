@@ -156,6 +156,23 @@ class SubprocessCLITransport(Transport):
         if self._options.fork_session:
             cmd.append("--fork-session")
 
+        if self._options.agents:
+            agents_dict = {}
+            for name, agent_def in self._options.agents.items():
+                agent_dict: dict[str, Any] = {
+                    "description": agent_def.description,
+                    "prompt": agent_def.prompt,
+                }
+                if agent_def.tools is not None:
+                    agent_dict["tools"] = agent_def.tools
+                if agent_def.model is not None:
+                    agent_dict["model"] = agent_def.model
+                agents_dict[name] = agent_dict
+            cmd.extend(["--agents", json.dumps(agents_dict)])
+
+        if self._options.setting_sources:
+            cmd.extend(["--setting-sources", ",".join(self._options.setting_sources)])
+
         # Add extra args for future CLI flags
         for flag, value in self._options.extra_args.items():
             if value is None:
