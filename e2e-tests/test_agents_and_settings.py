@@ -35,12 +35,13 @@ async def test_agent_definition():
         # Check that agent is available in init message
         async for message in client.receive_response():
             if isinstance(message, SystemMessage) and message.subtype == "init":
-                agents = message.data.get("agents", {})
+                agents = message.data.get("agents", [])
+                assert isinstance(
+                    agents, list
+                ), f"agents should be a list of strings, got: {type(agents)}"
                 assert (
                     "test-agent" in agents
                 ), f"test-agent should be available, got: {agents}"
-                agent_data = agents["test-agent"]
-                assert agent_data["description"] == "A test agent for verification"
                 break
 
 
