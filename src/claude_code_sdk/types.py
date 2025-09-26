@@ -21,6 +21,7 @@ SettingSource = Literal["user", "project", "local"]
 class SystemPromptPreset(TypedDict):
     """System prompt preset configuration."""
 
+    type: Literal["preset"]
     preset: Literal["claude_code"]
     append: NotRequired[str]
 

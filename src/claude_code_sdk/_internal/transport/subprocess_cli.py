@@ -90,7 +90,10 @@ class SubprocessCLITransport(Transport):
         elif isinstance(self._options.system_prompt, str):
             cmd.extend(["--system-prompt", self._options.system_prompt])
         else:
-            if "append" in self._options.system_prompt:
+            if (
+                self._options.system_prompt.get("type") == "preset"
+                and "append" in self._options.system_prompt
+            ):
                 cmd.extend(
                     ["--append-system-prompt", self._options.system_prompt["append"]]
                 )

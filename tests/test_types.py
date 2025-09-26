@@ -117,16 +117,21 @@ class TestOptions:
     def test_claude_code_options_with_system_prompt_preset(self):
         """Test Options with system prompt preset."""
         options = ClaudeCodeOptions(
-            system_prompt={"preset": "claude_code"},
+            system_prompt={"type": "preset", "preset": "claude_code"},
         )
-        assert options.system_prompt == {"preset": "claude_code"}
+        assert options.system_prompt == {"type": "preset", "preset": "claude_code"}
 
     def test_claude_code_options_with_system_prompt_preset_and_append(self):
         """Test Options with system prompt preset and append."""
         options = ClaudeCodeOptions(
-            system_prompt={"preset": "claude_code", "append": "Be concise."},
+            system_prompt={
+                "type": "preset",
+                "preset": "claude_code",
+                "append": "Be concise.",
+            },
         )
         assert options.system_prompt == {
+            "type": "preset",
             "preset": "claude_code",
             "append": "Be concise.",
         }

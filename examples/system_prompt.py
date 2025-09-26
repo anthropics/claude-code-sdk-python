@@ -44,7 +44,7 @@ async def preset_system_prompt():
     print("=== Preset System Prompt (Default) ===")
 
     options = ClaudeCodeOptions(
-        system_prompt={"preset": "claude_code"},
+        system_prompt={"type": "preset", "preset": "claude_code"},
     )
 
     async for message in query(prompt="What is 2 + 2?", options=options):
@@ -61,6 +61,7 @@ async def preset_with_append():
 
     options = ClaudeCodeOptions(
         system_prompt={
+            "type": "preset",
             "preset": "claude_code",
             "append": "Always end your response with a fun fact.",
         },

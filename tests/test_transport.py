@@ -71,7 +71,7 @@ class TestSubprocessCLITransport:
         transport = SubprocessCLITransport(
             prompt="test",
             options=ClaudeCodeOptions(
-                system_prompt={"preset": "claude_code"},
+                system_prompt={"type": "preset", "preset": "claude_code"},
             ),
             cli_path="/usr/bin/claude",
         )
@@ -85,7 +85,11 @@ class TestSubprocessCLITransport:
         transport = SubprocessCLITransport(
             prompt="test",
             options=ClaudeCodeOptions(
-                system_prompt={"preset": "claude_code", "append": "Be concise."},
+                system_prompt={
+                    "type": "preset",
+                    "preset": "claude_code",
+                    "append": "Be concise.",
+                },
             ),
             cli_path="/usr/bin/claude",
         )
