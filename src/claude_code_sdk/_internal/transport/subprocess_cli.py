@@ -6,6 +6,7 @@ import os
 import shutil
 from collections.abc import AsyncIterable, AsyncIterator
 from contextlib import suppress
+from dataclasses import asdict
 from pathlib import Path
 from subprocess import PIPE
 from typing import Any
@@ -157,17 +158,10 @@ class SubprocessCLITransport(Transport):
             cmd.append("--fork-session")
 
         if self._options.agents:
-            agents_dict = {}
-            for name, agent_def in self._options.agents.items():
-                agent_dict: dict[str, Any] = {
-                    "description": agent_def.description,
-                    "prompt": agent_def.prompt,
-                }
-                if agent_def.tools is not None:
-                    agent_dict["tools"] = agent_def.tools
-                if agent_def.model is not None:
-                    agent_dict["model"] = agent_def.model
-                agents_dict[name] = agent_dict
+            agents_dict = {
+                name: {k: v for k, v in asdict(agent_def).items() if v is not None}
+                for name, agent_def in self._options.agents.items()
+            }
             cmd.extend(["--agents", json.dumps(agents_dict)])
 
         sources_value = (
