@@ -10,15 +10,19 @@ Setting sources determine where Claude Code loads configurations from:
 - "project": Project-level settings (.claude/ in project)
 - "local": Local gitignored settings (.claude-local/)
 
+IMPORTANT: When setting_sources is not provided (None), NO settings are loaded
+by default. This creates an isolated environment. To load settings, explicitly
+specify which sources to use.
+
 By controlling which sources are loaded, you can:
-- Exclude project-specific slash commands
-- Use only your personal configurations
-- Create isolated environments with minimal settings
+- Create isolated environments with no custom settings (default)
+- Load only user settings, excluding project-specific configurations
+- Combine multiple sources as needed
 
 Usage:
 ./examples/setting_sources.py - List the examples
 ./examples/setting_sources.py all - Run all examples
-./examples/setting_sources.py user_only - Run a specific example
+./examples/setting_sources.py default - Run a specific example
 """
 
 import asyncio
@@ -38,6 +42,34 @@ def extract_slash_commands(msg: SystemMessage) -> list[str]:
         commands = msg.data.get("slash_commands", [])
         return commands
     return []
+
+
+async def example_default():
+    """Default behavior - no settings loaded."""
+    print("=== Default Behavior Example ===")
+    print("Setting sources: None (default)")
+    print("Expected: No custom slash commands will be available\n")
+
+    sdk_dir = Path(__file__).parent.parent
+
+    options = ClaudeCodeOptions(
+        cwd=sdk_dir,
+    )
+
+    async with ClaudeSDKClient(options=options) as client:
+        await client.query("What is 2 + 2?")
+
+        async for msg in client.receive_response():
+            if isinstance(msg, SystemMessage) and msg.subtype == "init":
+                commands = extract_slash_commands(msg)
+                print(f"Available slash commands: {commands}")
+                if "commit" in commands:
+                    print("❌ /commit is available (unexpected)")
+                else:
+                    print("✓ /commit is NOT available (expected - no settings loaded)")
+                break
+
+    print()
 
 
 async def example_user_only():
@@ -101,36 +133,14 @@ async def example_project_and_user():
     print()
 
 
-async def example_empty_sources():
-    """Load no settings at all."""
-    print("=== No Settings Example ===")
-    print("Setting sources: []\n")
-
-    sdk_dir = Path(__file__).parent.parent
-
-    options = ClaudeCodeOptions(
-        setting_sources=[],
-        cwd=sdk_dir,
-    )
-
-    async with ClaudeSDKClient(options=options) as client:
-        await client.query("What is 2 + 2?")
-
-        async for msg in client.receive_response():
-            if isinstance(msg, SystemMessage) and msg.subtype == "init":
-                commands = extract_slash_commands(msg)
-                print(f"Available slash commands: {commands}")
-                break
-
-    print()
 
 
 async def main():
     """Run all examples or a specific example based on command line argument."""
     examples = {
+        "default": example_default,
         "user_only": example_user_only,
         "project_and_user": example_project_and_user,
-        "empty_sources": example_empty_sources,
     }
 
     if len(sys.argv) < 2:

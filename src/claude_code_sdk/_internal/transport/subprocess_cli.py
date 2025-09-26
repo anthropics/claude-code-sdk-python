@@ -170,8 +170,12 @@ class SubprocessCLITransport(Transport):
                 agents_dict[name] = agent_dict
             cmd.extend(["--agents", json.dumps(agents_dict)])
 
-        if self._options.setting_sources is not None:
-            cmd.extend(["--setting-sources", ",".join(self._options.setting_sources)])
+        sources_value = (
+            ",".join(self._options.setting_sources)
+            if self._options.setting_sources is not None
+            else ""
+        )
+        cmd.extend(["--setting-sources", sources_value])
 
         # Add extra args for future CLI flags
         for flag, value in self._options.extra_args.items():
