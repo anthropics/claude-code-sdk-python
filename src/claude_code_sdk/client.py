@@ -222,9 +222,9 @@ class ClaudeSDKClient:
 
         Args:
             model: The model to use, or None to use default. Examples:
-                - 'claude-3-5-sonnet-20241022'
-                - 'claude-3-5-haiku-20241022'
-                - 'claude-3-opus-20240229'
+                - 'claude-sonnet-4-20250514'
+                - 'claude-opus-4-1-20250805'
+                - 'claude-opus-4-20250514'
 
         Example:
             ```python
