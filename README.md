@@ -271,6 +271,252 @@ See [examples/quick_start.py](examples/quick_start.py) for a complete working ex
 
 See [examples/streaming_mode.py](examples/streaming_mode.py) for comprehensive examples involving `ClaudeSDKClient`. You can even run interactive examples in IPython from [examples/streaming_mode_ipython.py](examples/streaming_mode_ipython.py).
 
+## Development
+
+### Prerequisites
+
+- **Python 3.10+** - Required for modern type hints and async features
+- **Node.js** - Required for Claude Code CLI
+- **Git** - For version control and contributing
+- **Claude Code CLI** - Install globally: `npm install -g @anthropic-ai/claude-code`
+
+### Development Setup
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/anthropics/claude-code-sdk-python.git
+   cd claude-code-sdk-python
+   ```
+
+2. **Create a virtual environment:**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install development dependencies:**
+   ```bash
+   pip install -e ".[dev]"
+   ```
+
+   This installs the package in editable mode with all development dependencies including pytest, mypy, ruff, and coverage tools.
+
+### Development Workflow
+
+#### Code Quality Checks
+
+Run these commands before committing code:
+
+```bash
+# Lint and fix issues automatically
+python -m ruff check src/ tests/ --fix
+
+# Format code
+python -m ruff format src/ tests/
+
+# Type checking (src/ only)
+python -m mypy src/
+
+# Run all tests
+python -m pytest tests/
+
+# Run specific test file
+python -m pytest tests/test_client.py
+```
+
+#### Testing
+
+**Unit Tests:**
+```bash
+# Run all unit tests with coverage
+python -m pytest tests/ -v --cov=claude_code_sdk --cov-report=term-missing
+
+# Run specific test class
+python -m pytest tests/test_client.py::TestQueryFunction -v
+
+# Run with different verbosity
+python -m pytest tests/ -v  # verbose
+python -m pytest tests/ -q  # quiet
+```
+
+**End-to-End Tests:**
+```bash
+# Requires ANTHROPIC_API_KEY environment variable
+export ANTHROPIC_API_KEY="your-api-key"
+python -m pytest e2e-tests/ -v -m e2e
+```
+
+**Example Scripts:**
+```bash
+# Test example scripts (requires API key)
+python examples/quick_start.py
+python examples/streaming_mode.py all
+```
+
+### Project Structure
+
+```
+claude-code-sdk-python/
+├── src/claude_code_sdk/          # Main package
+│   ├── __init__.py              # Public API exports
+│   ├── client.py                # ClaudeSDKClient implementation
+│   ├── query.py                 # One-shot query function
+│   ├── types.py                 # Type definitions and data classes
+│   ├── _errors.py               # Exception classes
+│   └── _internal/               # Internal implementation
+│       ├── client.py            # Internal client logic
+│       ├── message_parser.py    # Message parsing utilities
+│       ├── query.py             # Internal query implementation
+│       └── transport/           # Transport layer
+│           └── subprocess_cli.py # CLI subprocess management
+├── tests/                       # Unit tests
+├── e2e-tests/                   # End-to-end integration tests
+├── examples/                    # Usage examples
+├── pyproject.toml              # Project configuration
+└── CLAUDE.md                   # Development instructions
+```
+
+### Code Standards
+
+This project follows strict code quality standards:
+
+#### Formatting and Linting (Ruff)
+- **Line length:** 88 characters
+- **Target Python:** 3.10+
+- **Import sorting:** isort-compatible with first-party package recognition
+- **Enabled rules:** pycodestyle, pyflakes, isort, pep8-naming, pyupgrade, flake8-bugbear, flake8-comprehensions, flake8-use-pathlib, flake8-simplify
+
+#### Type Checking (MyPy)
+- **Strict mode:** Enabled for comprehensive type safety
+- **Coverage:** All public functions must have type annotations
+- **Configuration:** See `[tool.mypy]` in pyproject.toml
+
+#### Testing Standards
+- **Framework:** pytest with asyncio support
+- **Coverage:** Minimum coverage enforced via CI
+- **Test organization:** Separate files for different components
+- **Async testing:** Uses anyio.run() for sync test compatibility
+
+### Common Development Tasks
+
+#### Running Examples Locally
+
+```bash
+# Basic query example
+python examples/quick_start.py
+
+# Interactive streaming with different backends
+python examples/streaming_mode.py all
+
+# Custom tools example
+python examples/mcp_calculator.py
+
+# IPython integration
+python examples/streaming_mode_ipython.py
+```
+
+#### Working with Custom Tools
+
+When developing custom MCP tools:
+
+```python
+from claude_code_sdk import tool, create_sdk_mcp_server
+
+@tool("your_tool", "Description", {"param": str})
+async def your_tool(args):
+    # Your implementation
+    return {"content": [{"type": "text", "text": "result"}]}
+```
+
+#### Debugging
+
+```python
+# Enable debug logging for transport layer
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+# Test with minimal example
+from claude_code_sdk import query
+async for msg in query("test", options=ClaudeCodeOptions(max_turns=1)):
+    print(repr(msg))
+```
+
+### Troubleshooting
+
+#### Common Issues
+
+**"Claude Code CLI not found"**
+```bash
+# Verify installation
+claude -v
+
+# Reinstall if needed
+npm install -g @anthropic-ai/claude-code
+```
+
+**"Module not found" errors**
+```bash
+# Ensure proper installation
+pip install -e ".[dev]"
+
+# Check Python path
+python -c "import claude_code_sdk; print(claude_code_sdk.__file__)"
+```
+
+**Tests failing with async errors**
+```bash
+# Ensure pytest-asyncio is installed
+pip install pytest-asyncio
+
+# Check asyncio mode in pyproject.toml
+grep -A 2 "\[tool.pytest-asyncio\]" pyproject.toml
+```
+
+**Type checking failures**
+```bash
+# Run mypy with verbose output
+python -m mypy src/ --show-error-codes --show-error-context
+
+# Check specific file
+python -m mypy src/claude_code_sdk/client.py
+```
+
+#### API Key Issues
+
+For e2e tests and examples requiring Claude API access:
+
+```bash
+# Set environment variable
+export ANTHROPIC_API_KEY="your-anthropic-api-key"
+
+# Or create a .env file (not tracked in git)
+echo "ANTHROPIC_API_KEY=your-key" > .env
+```
+
+#### Performance Debugging
+
+```python
+# Monitor subprocess communication
+import os
+os.environ['CLAUDE_SDK_DEBUG'] = '1'
+
+# Check for hanging processes
+ps aux | grep claude
+```
+
+### Contributing Guidelines
+
+1. **Before submitting a PR:**
+   - Run the full test suite: `python -m pytest tests/`
+   - Ensure code quality: `python -m ruff check src/ tests/ --fix`
+   - Check types: `python -m mypy src/`
+   - Test examples work: `python examples/quick_start.py`
+
+2. **Commit message format:** Follow conventional commits
+3. **Documentation:** Update docstrings for any API changes
+4. **Tests:** Add tests for new functionality
+5. **Examples:** Update examples if adding new features
+
 ## License
 
 MIT
