@@ -194,7 +194,7 @@ def create_sdk_mcp_server(
         - ClaudeAgentOptions: Configuration for using servers with query()
     """
     from mcp.server import Server
-    from mcp.types import TextContent, Tool
+    from mcp.types import TextContent, ImageContent, Tool
 
     # Create MCP server instance
     server = Server(name, version=version)
@@ -269,6 +269,15 @@ def create_sdk_mcp_server(
                 for item in result["content"]:
                     if item.get("type") == "text":
                         content.append(TextContent(type="text", text=item["text"]))
+                    if item.get("type") == "image":
+                        source = item["source"]
+                        content.append(
+                            ImageContent(
+                                type="image",
+                                data=source["data"],
+                                mimeType=source["mimeType"],
+                            )
+                        )
 
             # Return just the content list - the decorator wraps it
             return content
