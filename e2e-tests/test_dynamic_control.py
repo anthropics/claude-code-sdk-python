@@ -3,7 +3,7 @@
 import pytest
 
 from claude_code_sdk import (
-    ClaudeCodeOptions,
+    ClaudeAgentOptions,
     ClaudeSDKClient,
 )
 
@@ -13,7 +13,7 @@ from claude_code_sdk import (
 async def test_set_permission_mode():
     """Test that permission mode can be changed dynamically during a session."""
 
-    options = ClaudeCodeOptions(
+    options = ClaudeAgentOptions(
         permission_mode="default",
     )
 
@@ -44,7 +44,7 @@ async def test_set_permission_mode():
 async def test_set_model():
     """Test that model can be changed dynamically during a session."""
 
-    options = ClaudeCodeOptions()
+    options = ClaudeAgentOptions()
 
     async with ClaudeSDKClient(options=options) as client:
         # Start with default model
@@ -78,7 +78,7 @@ async def test_set_model():
 async def test_interrupt():
     """Test that interrupt can be sent during a session."""
 
-    options = ClaudeCodeOptions()
+    options = ClaudeAgentOptions()
 
     async with ClaudeSDKClient(options=options) as client:
         # Start a query
