@@ -15,6 +15,7 @@ from ._internal.transport import Transport
 from ._version import __version__
 from .client import ClaudeSDKClient
 from .query import query
+from .session_persistent_client import SessionPersistentClient
 from .types import (
     AgentDefinition,
     AssistantMessage,
@@ -284,6 +285,7 @@ __all__ = [
     # Transport
     "Transport",
     "ClaudeSDKClient",
+    "SessionPersistentClient",
     # Types
     "PermissionMode",
     "McpServerConfig",
