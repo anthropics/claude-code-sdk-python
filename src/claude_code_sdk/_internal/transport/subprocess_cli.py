@@ -6,6 +6,7 @@ import os
 import shutil
 from collections.abc import AsyncIterable, AsyncIterator
 from contextlib import suppress
+from dataclasses import asdict
 from pathlib import Path
 from subprocess import PIPE
 from typing import Any
@@ -16,7 +17,8 @@ from anyio.streams.text import TextReceiveStream, TextSendStream
 
 from ..._errors import CLIConnectionError, CLINotFoundError, ProcessError
 from ..._errors import CLIJSONDecodeError as SDKJSONDecodeError
-from ...types import ClaudeCodeOptions
+from ..._version import __version__
+from ...types import ClaudeAgentOptions
 from . import Transport
 
 logger = logging.getLogger(__name__)
@@ -30,7 +32,7 @@ class SubprocessCLITransport(Transport):
     def __init__(
         self,
         prompt: str | AsyncIterable[dict[str, Any]],
-        options: ClaudeCodeOptions,
+        options: ClaudeAgentOptions,
         cli_path: str | Path | None = None,
     ):
         self._prompt = prompt
@@ -83,11 +85,18 @@ class SubprocessCLITransport(Transport):
         """Build CLI command with arguments."""
         cmd = [self._cli_path, "--output-format", "stream-json", "--verbose"]
 
-        if self._options.system_prompt:
+        if self._options.system_prompt is None:
+            pass
+        elif isinstance(self._options.system_prompt, str):
             cmd.extend(["--system-prompt", self._options.system_prompt])
-
-        if self._options.append_system_prompt:
-            cmd.extend(["--append-system-prompt", self._options.append_system_prompt])
+        else:
+            if (
+                self._options.system_prompt.get("type") == "preset"
+                and "append" in self._options.system_prompt
+            ):
+                cmd.extend(
+                    ["--append-system-prompt", self._options.system_prompt["append"]]
+                )
 
         if self._options.allowed_tools:
             cmd.extend(["--allowedTools", ",".join(self._options.allowed_tools)])
@@ -150,6 +159,26 @@ class SubprocessCLITransport(Transport):
                 # String or Path format: pass directly as file path or JSON string
                 cmd.extend(["--mcp-config", str(self._options.mcp_servers)])
 
+        if self._options.include_partial_messages:
+            cmd.append("--include-partial-messages")
+
+        if self._options.fork_session:
+            cmd.append("--fork-session")
+
+        if self._options.agents:
+            agents_dict = {
+                name: {k: v for k, v in asdict(agent_def).items() if v is not None}
+                for name, agent_def in self._options.agents.items()
+            }
+            cmd.extend(["--agents", json.dumps(agents_dict)])
+
+        sources_value = (
+            ",".join(self._options.setting_sources)
+            if self._options.setting_sources is not None
+            else ""
+        )
+        cmd.extend(["--setting-sources", sources_value])
+
         # Add extra args for future CLI flags
         for flag, value in self._options.extra_args.items():
             if value is None:
@@ -181,6 +210,7 @@ class SubprocessCLITransport(Transport):
                 **os.environ,
                 **self._options.env,  # User-provided env vars
                 "CLAUDE_CODE_ENTRYPOINT": "sdk-py",
+                "CLAUDE_AGENT_SDK_VERSION": __version__,
             }
 
             if self._cwd:

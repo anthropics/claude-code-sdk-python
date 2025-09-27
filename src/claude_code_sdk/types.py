@@ -14,6 +14,27 @@ if TYPE_CHECKING:
 # Permission modes
 PermissionMode = Literal["default", "acceptEdits", "plan", "bypassPermissions"]
 
+# Agent definitions
+SettingSource = Literal["user", "project", "local"]
+
+
+class SystemPromptPreset(TypedDict):
+    """System prompt preset configuration."""
+
+    type: Literal["preset"]
+    preset: Literal["claude_code"]
+    append: NotRequired[str]
+
+
+@dataclass
+class AgentDefinition:
+    """Agent definition configuration."""
+
+    description: str
+    prompt: str
+    tools: list[str] | None = None
+    model: Literal["sonnet", "opus", "haiku", "inherit"] | None = None
+
 
 # Permission Update types (matching TypeScript SDK)
 PermissionUpdateDestination = Literal[
@@ -230,6 +251,7 @@ class UserMessage:
     """User message."""
 
     content: str | list[ContentBlock]
+    parent_tool_use_id: str | None = None
 
 
 @dataclass
@@ -238,6 +260,7 @@ class AssistantMessage:
 
     content: list[ContentBlock]
     model: str
+    parent_tool_use_id: str | None = None
 
 
 @dataclass
@@ -263,16 +286,25 @@ class ResultMessage:
     result: str | None = None
 
 
-Message = UserMessage | AssistantMessage | SystemMessage | ResultMessage
+@dataclass
+class StreamEvent:
+    """Stream event for partial message updates during streaming."""
+
+    uuid: str
+    session_id: str
+    event: dict[str, Any]  # The raw Anthropic API stream event
+    parent_tool_use_id: str | None = None
+
+
+Message = UserMessage | AssistantMessage | SystemMessage | ResultMessage | StreamEvent
 
 
 @dataclass
-class ClaudeCodeOptions:
+class ClaudeAgentOptions:
     """Query options for Claude SDK."""
 
     allowed_tools: list[str] = field(default_factory=list)
-    system_prompt: str | None = None
-    append_system_prompt: str | None = None
+    system_prompt: str | SystemPromptPreset | None = None
     mcp_servers: dict[str, McpServerConfig] | str | Path = field(default_factory=dict)
     permission_mode: PermissionMode | None = None
     continue_conversation: bool = False
@@ -299,6 +331,16 @@ class ClaudeCodeOptions:
     hooks: dict[HookEvent, list[HookMatcher]] | None = None
 
     user: str | None = None
+
+    # Partial message streaming support
+    include_partial_messages: bool = False
+    # When true resumed sessions will fork to a new session ID rather than
+    # continuing the previous session.
+    fork_session: bool = False
+    # Agent definitions for custom agents
+    agents: dict[str, AgentDefinition] | None = None
+    # Setting sources to load (user, project, local)
+    setting_sources: list[SettingSource] | None = None
 
 
 # SDK Control Protocol

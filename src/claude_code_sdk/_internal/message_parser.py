@@ -9,6 +9,7 @@ from ..types import (
     ContentBlock,
     Message,
     ResultMessage,
+    StreamEvent,
     SystemMessage,
     TextBlock,
     ThinkingBlock,
@@ -46,6 +47,7 @@ def parse_message(data: dict[str, Any]) -> Message:
     match message_type:
         case "user":
             try:
+                parent_tool_use_id = data.get("parent_tool_use_id")
                 if isinstance(data["message"]["content"], list):
                     user_content_blocks: list[ContentBlock] = []
                     for block in data["message"]["content"]:
@@ -70,8 +72,14 @@ def parse_message(data: dict[str, Any]) -> Message:
                                         is_error=block.get("is_error"),
                                     )
                                 )
-                    return UserMessage(content=user_content_blocks)
-                return UserMessage(content=data["message"]["content"])
+                    return UserMessage(
+                        content=user_content_blocks,
+                        parent_tool_use_id=parent_tool_use_id,
+                    )
+                return UserMessage(
+                    content=data["message"]["content"],
+                    parent_tool_use_id=parent_tool_use_id,
+                )
             except KeyError as e:
                 raise MessageParseError(
                     f"Missing required field in user message: {e}", data
@@ -109,7 +117,9 @@ def parse_message(data: dict[str, Any]) -> Message:
                             )
 
                 return AssistantMessage(
-                    content=content_blocks, model=data["message"]["model"]
+                    content=content_blocks,
+                    model=data["message"]["model"],
+                    parent_tool_use_id=data.get("parent_tool_use_id"),
                 )
             except KeyError as e:
                 raise MessageParseError(
@@ -143,6 +153,19 @@ def parse_message(data: dict[str, Any]) -> Message:
             except KeyError as e:
                 raise MessageParseError(
                     f"Missing required field in result message: {e}", data
+                ) from e
+
+        case "stream_event":
+            try:
+                return StreamEvent(
+                    uuid=data["uuid"],
+                    session_id=data["session_id"],
+                    event=data["event"],
+                    parent_tool_use_id=data.get("parent_tool_use_id"),
+                )
+            except KeyError as e:
+                raise MessageParseError(
+                    f"Missing required field in stream_event message: {e}", data
                 ) from e
 
         case _:
