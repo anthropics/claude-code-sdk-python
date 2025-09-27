@@ -9,12 +9,12 @@
 
 ## 0.0.19
 
-- Add `ClaudeAgentOptions.add_dirs` for `--add-dir`
+- Add `ClaudeCodeOptions.add_dirs` for `--add-dir`
 - Fix ClaudeCodeSDK hanging when MCP servers log to Claude Code stderr
 
 ## 0.0.18
 
-- Add `ClaudeAgentOptions.settings` for `--settings`
+- Add `ClaudeCodeOptions.settings` for `--settings`
 
 ## 0.0.17
 

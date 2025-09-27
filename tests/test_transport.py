@@ -131,7 +131,9 @@ class TestSubprocessCLITransport:
 
         transport = SubprocessCLITransport(
             prompt="test",
-            options=ClaudeAgentOptions(add_dirs=["/path/to/dir1", Path("/path/to/dir2")]),
+            options=ClaudeAgentOptions(
+                add_dirs=["/path/to/dir1", Path("/path/to/dir2")]
+            ),
             cli_path="/usr/bin/claude",
         )
 
@@ -145,7 +147,9 @@ class TestSubprocessCLITransport:
         """Test session continuation options."""
         transport = SubprocessCLITransport(
             prompt="Continue from before",
-            options=ClaudeAgentOptions(continue_conversation=True, resume="session-123"),
+            options=ClaudeAgentOptions(
+                continue_conversation=True, resume="session-123"
+            ),
             cli_path="/usr/bin/claude",
         )
 
