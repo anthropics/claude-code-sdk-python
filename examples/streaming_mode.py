@@ -66,7 +66,6 @@ async def example_basic_streaming():
 
         # Receive complete response using the helper method
         async for msg in client.receive_response():
-            print(msg)
             display_message(msg)
 
     print("\n")
