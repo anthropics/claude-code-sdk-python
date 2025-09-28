@@ -10,7 +10,7 @@ import pytest
 
 from claude_agent_sdk._errors import CLIJSONDecodeError
 from claude_agent_sdk._internal.transport.subprocess_cli import (
-    _MAX_BUFFER_SIZE,
+    _DEFAULT_MAX_BUFFER_SIZE,
     SubprocessCLITransport,
 )
 from claude_agent_sdk.types import ClaudeAgentOptions
@@ -237,7 +237,7 @@ class TestSubprocessBuffering:
         """Test that exceeding buffer size raises an appropriate error."""
 
         async def _test() -> None:
-            huge_incomplete = '{"data": "' + "x" * (_MAX_BUFFER_SIZE + 1000)
+            huge_incomplete = '{"data": "' + "x" * (_DEFAULT_MAX_BUFFER_SIZE + 1000)
 
             transport = SubprocessCLITransport(
                 prompt="test", options=ClaudeAgentOptions(), cli_path="/usr/bin/claude"
