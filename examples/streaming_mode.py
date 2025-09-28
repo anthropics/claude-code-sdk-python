@@ -19,7 +19,7 @@ import asyncio
 import contextlib
 import sys
 
-from claude_code_sdk import (
+from claude_agent_sdk import (
     AssistantMessage,
     ClaudeAgentOptions,
     ClaudeSDKClient,
@@ -66,6 +66,7 @@ async def example_basic_streaming():
 
         # Receive complete response using the helper method
         async for msg in client.receive_response():
+            print(msg)
             display_message(msg)
 
     print("\n")

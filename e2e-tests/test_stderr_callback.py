@@ -2,7 +2,7 @@
 
 import pytest
 
-from claude_code_sdk import ClaudeCodeOptions, query
+from claude_agent_sdk import ClaudeCodeOptions, query
 
 
 @pytest.mark.e2e
