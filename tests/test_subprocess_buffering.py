@@ -260,6 +260,34 @@ class TestSubprocessBuffering:
 
         anyio.run(_test)
 
+    def test_buffer_size_option(self) -> None:
+        """Test that the configurable buffer size option is respected."""
+
+        async def _test() -> None:
+            custom_limit = 512
+            huge_incomplete = '{"data": "' + "x" * (custom_limit + 10)
+
+            transport = SubprocessCLITransport(
+                prompt="test",
+                options=ClaudeAgentOptions(max_buffer_size=custom_limit),
+                cli_path="/usr/bin/claude",
+            )
+
+            mock_process = MagicMock()
+            mock_process.returncode = None
+            mock_process.wait = AsyncMock(return_value=None)
+            transport._process = mock_process
+            transport._stdout_stream = MockTextReceiveStream([huge_incomplete])
+            transport._stderr_stream = MockTextReceiveStream([])
+
+            with pytest.raises(CLIJSONDecodeError) as exc_info:
+                async for _ in transport.read_messages():
+                    pass
+
+            assert f"maximum buffer size of {custom_limit} bytes" in str(exc_info.value)
+
+        anyio.run(_test)
+
     def test_mixed_complete_and_split_json(self) -> None:
         """Test handling a mix of complete and split JSON messages."""
 
