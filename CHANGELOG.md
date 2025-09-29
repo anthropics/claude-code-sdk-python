@@ -1,8 +1,6 @@
 # Changelog
 
-All notable changes to the Claude Agent SDK will be documented in this file.
-
-## 0.1.0 - 2025-09-29
+## 0.1.0
 
 Introducing the Claude Agent SDK! The Claude Code SDK has been renamed to better reflect its capabilities for building AI agents across all domains, not just coding.
 
@@ -44,8 +42,6 @@ For full migration instructions, see our [migration guide](https://docs.claude.c
 - Comprehensive documentation now available in the [API Guide](https://docs.claude.com/en/api/agent-sdk/overview)
 - New guides for [Custom Tools](https://docs.claude.com/en/api/agent-sdk/custom-tools), [Permissions](https://docs.claude.com/en/api/agent-sdk/permissions), [Session Management](https://docs.claude.com/en/api/agent-sdk/sessions), and more
 - Complete [Python API reference](https://docs.claude.com/en/api/agent-sdk/python)
-
----
 
 ## 0.0.22
 
