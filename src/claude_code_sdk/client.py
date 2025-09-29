@@ -2,6 +2,7 @@
 
 import json
 import os
+import warnings
 from collections.abc import AsyncIterable, AsyncIterator
 from dataclasses import replace
 from typing import Any
@@ -53,6 +54,14 @@ class ClaudeSDKClient:
 
     def __init__(self, options: ClaudeCodeOptions | None = None):
         """Initialize Claude SDK client."""
+        warnings.warn(
+            "The Claude Code SDK is now the Claude Agent SDK! "
+            "Please install and use claude-agent-sdk instead. "
+            "See https://docs.claude.com/en/docs/claude-code/sdk/migration-guide for migration instructions.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
         if options is None:
             options = ClaudeCodeOptions()
         self.options = options

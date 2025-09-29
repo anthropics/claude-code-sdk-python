@@ -1,6 +1,7 @@
 """Query function for one-shot interactions with Claude Code."""
 
 import os
+import warnings
 from collections.abc import AsyncIterable, AsyncIterator
 from typing import Any
 
@@ -113,6 +114,14 @@ async def query(
         ```
 
     """
+    warnings.warn(
+        "The Claude Code SDK is now the Claude Agent SDK! "
+        "Please install and use claude-agent-sdk instead. "
+        "See https://docs.claude.com/en/docs/claude-code/sdk/migration-guide for migration instructions.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
     if options is None:
         options = ClaudeCodeOptions()
 
