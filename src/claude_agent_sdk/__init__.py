@@ -324,5 +324,4 @@ __all__ = [
     "ProcessError",
     "CLIJSONDecodeError",
      "HookJSONOutput",
-    
 ]
