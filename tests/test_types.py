@@ -1,8 +1,11 @@
 """Tests for Claude SDK type definitions."""
 
+from typing import Any
+
 from claude_agent_sdk import (
     AssistantMessage,
     ClaudeAgentOptions,
+    HookJSONOutput,
     ResultMessage,
 )
 from claude_agent_sdk.types import (
@@ -12,6 +15,210 @@ from claude_agent_sdk.types import (
     ToolUseBlock,
     UserMessage,
 )
+
+
+class TestHookTypes:
+    """Test hook type definitions."""
+
+    def test_hook_json_output_basic_usage(self):
+        """Test basic usage: ensure a dict literal can be annotated as HookJSONOutput and used at runtime."""
+        hook_output: HookJSONOutput = {"decision": "block"}
+        assert hook_output["decision"] == "block"
+
+    def test_hook_json_output_with_system_message(self):
+        """Test HookJSONOutput with systemMessage field."""
+        hook_output: HookJSONOutput = {
+            "decision": "block",
+            "systemMessage": "Not allowed",
+        }
+        assert hook_output["decision"] == "block"
+        assert hook_output["systemMessage"] == "Not allowed"
+
+    def test_hook_json_output_with_hook_specific(self):
+        """Test HookJSONOutput with hookSpecificOutput field."""
+        hook_output: HookJSONOutput = {"hookSpecificOutput": {"key": "value"}}
+        assert hook_output["hookSpecificOutput"]["key"] == "value"
+
+    def test_hook_json_output_all_fields(self):
+        """Test HookJSONOutput with all possible fields."""
+        hook_output: HookJSONOutput = {
+            "decision": "block",
+            "systemMessage": "Custom message",
+            "hookSpecificOutput": {"key": "value"}
+        }
+        assert hook_output["decision"] == "block"
+        assert hook_output["systemMessage"] == "Custom message"
+        assert hook_output["hookSpecificOutput"]["key"] == "value"
+
+    def test_hook_json_output_empty_dict(self):
+        """Test HookJSONOutput with empty dict (all fields are optional)."""
+        hook_output: HookJSONOutput = {}
+        # Should not raise any errors - all fields are NotRequired
+        assert isinstance(hook_output, dict)
+
+    def test_hook_json_output_decision_only(self):
+        """Test HookJSONOutput with only decision field."""
+        hook_output: HookJSONOutput = {"decision": "block"}
+        assert hook_output["decision"] == "block"
+        assert "systemMessage" not in hook_output
+        assert "hookSpecificOutput" not in hook_output
+
+    def test_hook_json_output_system_message_only(self):
+        """Test HookJSONOutput with only systemMessage field."""
+        hook_output: HookJSONOutput = {"systemMessage": "Test message"}
+        assert hook_output["systemMessage"] == "Test message"
+        assert "decision" not in hook_output
+        assert "hookSpecificOutput" not in hook_output
+
+    def test_hook_json_output_hook_specific_only(self):
+        """Test HookJSONOutput with only hookSpecificOutput field."""
+        hook_output: HookJSONOutput = {"hookSpecificOutput": {"custom": "data"}}
+        assert hook_output["hookSpecificOutput"]["custom"] == "data"
+        assert "decision" not in hook_output
+        assert "systemMessage" not in hook_output
+
+    def test_hook_json_output_complex_hook_specific(self):
+        """Test HookJSONOutput with complex hookSpecificOutput structure."""
+        complex_data = {
+            "hookEventName": "PreToolUse",
+            "additionalContext": "Complex nested data",
+            "nested": {
+                "level1": {
+                    "level2": ["item1", "item2", "item3"]
+                }
+            }
+        }
+        hook_output: HookJSONOutput = {"hookSpecificOutput": complex_data}
+        assert hook_output["hookSpecificOutput"]["hookEventName"] == "PreToolUse"
+        assert hook_output["hookSpecificOutput"]["nested"]["level1"]["level2"][0] == "item1"
+
+    def test_hook_json_output_invalid_field_names(self):
+        """Test that HookJSONOutput allows additional fields (TypedDict behavior)."""
+        # TypedDict allows extra fields at runtime, but type checkers may warn
+        hook_output: HookJSONOutput = {
+            "decision": "block",
+            "invalidField": "should be allowed at runtime",
+            "anotherInvalid": 123
+        }
+        assert hook_output["decision"] == "block"
+        assert hook_output["invalidField"] == "should be allowed at runtime"
+        assert hook_output["anotherInvalid"] == 123
+
+    def test_hook_json_output_type_constraints(self):
+        """Test HookJSONOutput type constraints and runtime behavior."""
+        # Note: TypedDict doesn't enforce runtime type checking, but documents expected types
+        # These tests verify the structure can hold various types as documented
+        
+        # decision should be "block" or not present
+        hook_output: HookJSONOutput = {"decision": "block"}
+        assert hook_output["decision"] == "block"
+        
+        # systemMessage should be a string
+        hook_output: HookJSONOutput = {"systemMessage": "Test message"}
+        assert isinstance(hook_output["systemMessage"], str)
+        
+        # hookSpecificOutput can be any type (Any)
+        hook_output: HookJSONOutput = {"hookSpecificOutput": "string"}
+        assert hook_output["hookSpecificOutput"] == "string"
+        
+        hook_output: HookJSONOutput = {"hookSpecificOutput": 123}
+        assert hook_output["hookSpecificOutput"] == 123
+        
+        hook_output: HookJSONOutput = {"hookSpecificOutput": None}
+        assert hook_output["hookSpecificOutput"] is None
+
+    def test_hook_json_output_integration_pretooluse_block(self):
+        """Test HookJSONOutput integration pattern for PreToolUse blocking."""
+        # Simulate a hook that blocks certain commands
+        def mock_pretooluse_hook(input_data: dict[str, Any], tool_use_id: str | None, context: Any) -> HookJSONOutput:
+            tool_name = input_data.get("tool_name", "")
+            tool_input = input_data.get("tool_input", {})
+            
+            if tool_name == "Bash":
+                command = tool_input.get("command", "")
+                if "rm -rf" in command:
+                    return {
+                        "decision": "block",
+                        "systemMessage": "Dangerous command blocked",
+                        "hookSpecificOutput": {
+                            "hookEventName": "PreToolUse",
+                            "permissionDecision": "deny",
+                            "permissionDecisionReason": "Command contains dangerous pattern: rm -rf"
+                        }
+                    }
+            return {}
+        
+        # Test blocking case
+        result = mock_pretooluse_hook(
+            {"tool_name": "Bash", "tool_input": {"command": "rm -rf /"}},
+            "tool-123",
+            None
+        )
+        assert result["decision"] == "block"
+        assert result["systemMessage"] == "Dangerous command blocked"
+        assert result["hookSpecificOutput"]["permissionDecision"] == "deny"
+        
+        # Test non-blocking case
+        result = mock_pretooluse_hook(
+            {"tool_name": "Bash", "tool_input": {"command": "ls -la"}},
+            "tool-123",
+            None
+        )
+        assert result == {}
+
+    def test_hook_json_output_integration_session_start(self):
+        """Test HookJSONOutput integration pattern for SessionStart hook."""
+        def mock_session_start_hook(input_data: dict[str, Any], tool_use_id: str | None, context: Any) -> HookJSONOutput:
+            return {
+                "hookSpecificOutput": {
+                    "hookEventName": "SessionStart",
+                    "additionalContext": "Custom session instructions",
+                    "userPreferences": {
+                        "theme": "dark",
+                        "language": "python"
+                    }
+                }
+            }
+        
+        result = mock_session_start_hook({}, None, None)
+        assert "decision" not in result
+        assert "systemMessage" not in result
+        assert result["hookSpecificOutput"]["hookEventName"] == "SessionStart"
+        assert result["hookSpecificOutput"]["additionalContext"] == "Custom session instructions"
+        assert result["hookSpecificOutput"]["userPreferences"]["theme"] == "dark"
+
+    def test_hook_json_output_integration_user_prompt_submit(self):
+        """Test HookJSONOutput integration pattern for UserPromptSubmit hook."""
+        def mock_user_prompt_hook(input_data: dict[str, Any], tool_use_id: str | None, context: Any) -> HookJSONOutput:
+            prompt = input_data.get("prompt", "")
+            
+            if "password" in prompt.lower():
+                return {
+                    "systemMessage": "Warning: Prompt contains sensitive information",
+                    "hookSpecificOutput": {
+                        "hookEventName": "UserPromptSubmit",
+                        "securityWarning": "Prompt may contain sensitive data",
+                        "recommendation": "Consider removing sensitive information"
+                    }
+                }
+            return {}
+        
+        # Test warning case
+        result = mock_user_prompt_hook(
+            {"prompt": "What is my password for the system?"},
+            None,
+            None
+        )
+        assert result["systemMessage"] == "Warning: Prompt contains sensitive information"
+        assert result["hookSpecificOutput"]["securityWarning"] == "Prompt may contain sensitive data"
+        
+        # Test normal case
+        result = mock_user_prompt_hook(
+            {"prompt": "How do I create a new file?"},
+            None,
+            None
+        )
+        assert result == {}
 
 
 class TestMessageTypes:
