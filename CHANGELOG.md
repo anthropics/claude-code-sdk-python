@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Bug Fixes
+
+- Export `HookJSONOutput` type from main module. This type is used as the return type for hook callbacks and was previously only accessible via internal imports. Users can now import it directly: `from claude_agent_sdk import HookJSONOutput`
+
 ## 0.1.0
 
 Introducing the Claude Agent SDK! The Claude Code SDK has been renamed to better reflect its capabilities for building AI agents across all domains, not just coding.

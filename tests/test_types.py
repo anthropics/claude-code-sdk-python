@@ -3,6 +3,7 @@
 from claude_agent_sdk import (
     AssistantMessage,
     ClaudeAgentOptions,
+    HookJSONOutput,
     ResultMessage,
 )
 from claude_agent_sdk.types import (
@@ -12,6 +13,30 @@ from claude_agent_sdk.types import (
     ToolUseBlock,
     UserMessage,
 )
+
+
+class TestHookTypes:
+    """Test hook type definitions."""
+
+    def test_hook_json_output_import(self):
+        """Test that HookJSONOutput can be imported from main module."""
+        # Verify HookJSONOutput is accessible from main module
+        hook_output: HookJSONOutput = {"decision": "block"}
+        assert hook_output["decision"] == "block"
+
+    def test_hook_json_output_with_system_message(self):
+        """Test HookJSONOutput with systemMessage field."""
+        hook_output: HookJSONOutput = {
+            "decision": "block",
+            "systemMessage": "Not allowed",
+        }
+        assert hook_output["decision"] == "block"
+        assert hook_output["systemMessage"] == "Not allowed"
+
+    def test_hook_json_output_with_hook_specific(self):
+        """Test HookJSONOutput with hookSpecificOutput field."""
+        hook_output: HookJSONOutput = {"hookSpecificOutput": {"key": "value"}}
+        assert hook_output["hookSpecificOutput"]["key"] == "value"
 
 
 class TestMessageTypes:
